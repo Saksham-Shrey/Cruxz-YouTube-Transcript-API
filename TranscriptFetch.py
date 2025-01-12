@@ -1,4 +1,5 @@
 import os
+import requests
 from flask import Flask, request, jsonify
 from youtube_transcript_api import YouTubeTranscriptApi
 
@@ -6,6 +7,15 @@ app = Flask(__name__)
 
 # Priority list of English language codes
 ENGLISH_LANGUAGES = ['en-US', 'en-UK', 'en-IN', 'en-CA', 'en-AU', 'en-NZ', 'en-ZA', 'en']
+
+
+@app.route('/test', methods=['GET'])
+def test_connectivity():
+    try:
+        response = requests.get("https://www.youtube.com")
+        return jsonify({'status': 'success', 'code': response.status_code})
+    except Exception as e:
+        return jsonify({'status': 'failed', 'error': str(e)})
 
 
 @app.route('/')
@@ -40,5 +50,5 @@ def get_transcript():
 
 if __name__ == '__main__':
     # Use PORT environment variable for Render
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5050))
     app.run(host='0.0.0.0', port=port)
