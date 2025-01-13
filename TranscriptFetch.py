@@ -1,6 +1,5 @@
 import os
 import time
-from dotenv import load_dotenv
 import logging
 import requests
 from flask import Flask, request, jsonify
@@ -11,19 +10,16 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Choose your proxy provider (ScraperAPI or Bright Data)
-USE_SCRAPERAPI = True  # Set to False if using Bright Data
-
-# Load environment variables from .env file
-load_dotenv()
+# Global variables to toggle proxy usage
+USE_PROXY = False  # Set to False to disable proxying entirely
+USE_SCRAPERAPI = True  # Set to False to use Bright Data (if USE_PROXY is True)
 
 # ScraperAPI settings
 SCRAPERAPI_URL = "http://api.scraperapi.com"
+SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "your_scraperapi_key_here")  # Use environment variable or default
 
-# Access environment variables
-SCRAPERAPI_KEY = os.getenv('SCRAPERAPI_KEY')
-BRIGHT_DATA_PROXY = os.getenv('BRIGHT_DATA_PROXY')
-
+# Bright Data proxy settings
+BRIGHT_DATA_PROXY = os.getenv("BRIGHT_DATA_PROXY", "http://username:password@proxy-server:port")  # Use environment variable or default
 
 @app.route('/')
 def home():
@@ -32,6 +28,9 @@ def home():
 
 @app.route('/transcript', methods=['GET'])
 def get_transcript():
+    """
+    Fetches the transcript for a given YouTube video ID.
+    """
     video_id = request.args.get('video_id')
     if not video_id:
         return jsonify({'error': 'Missing video_id parameter'}), 400
@@ -42,22 +41,23 @@ def get_transcript():
         # Add delay to avoid potential rate limiting
         time.sleep(1)
 
-        # Use proxy configuration
+        # Use proxy configuration if enabled
         proxies = None
-        if USE_SCRAPERAPI:
-            # ScraperAPI URL
-            url = f"http://api.scraperapi.com?api_key={SCRAPERAPI_KEY}&url=https://www.youtube.com/watch?v={video_id}"
-            response = requests.get(url, timeout=10)
-            if response.status_code != 200:
-                return jsonify({'error': f"Failed to fetch video page via ScraperAPI: {response.status_code}"}), 500
-        else:
-            # Bright Data Proxy
-            proxies = {
-                "http": BRIGHT_DATA_PROXY,
-                "https": BRIGHT_DATA_PROXY
-            }
+        if USE_PROXY:
+            if USE_SCRAPERAPI:
+                # ScraperAPI URL
+                url = f"{SCRAPERAPI_URL}?api_key={SCRAPERAPI_KEY}&url=https://www.youtube.com/watch?v={video_id}"
+                response = requests.get(url, timeout=10)
+                if response.status_code != 200:
+                    return jsonify({'error': f"Failed to fetch video page via ScraperAPI: {response.status_code}"}), 500
+            else:
+                # Bright Data Proxy
+                proxies = {
+                    "http": BRIGHT_DATA_PROXY,
+                    "https": BRIGHT_DATA_PROXY
+                }
 
-        # Fetch transcript using youtube-transcript-api with proxy support
+        # Fetch transcript using youtube-transcript-api with or without proxy
         transcript_data = YouTubeTranscriptApi.get_transcript(
             video_id, 
             languages=['en'], 
@@ -76,7 +76,6 @@ def get_transcript():
         logging.error(f"Error fetching transcript for video_id {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/youtube_test', methods=['GET'])
 def youtube_test():
     """
@@ -85,7 +84,7 @@ def youtube_test():
     logging.info("Testing connectivity to YouTube via proxy...")
     try:
         proxies = None
-        if not USE_SCRAPERAPI:
+        if USE_PROXY and not USE_SCRAPERAPI:
             proxies = {
                 "http": BRIGHT_DATA_PROXY,
                 "https": BRIGHT_DATA_PROXY
