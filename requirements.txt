@@ -1,4 +1,5 @@
-   fastapi
-   pydantic
-   youtube-transcript-api
-   uvicorn
+Flask
+youtube-transcript-api
+requests
+python-dotenv
+

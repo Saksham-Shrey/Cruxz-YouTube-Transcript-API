@@ -1,69 +1,102 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+import os
+import time
+import logging
+import requests
+from flask import Flask, request, jsonify
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import TranscriptsDisabled, VideoUnavailable, NoTranscriptFound
 
-app = FastAPI()
+app = Flask(__name__)
 
-class TranscriptWithTimestampsResponse(BaseModel):
-    video_id: str
-    transcript: list
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
-class TranscriptResponse(BaseModel):
-    video_id: str
-    transcript: str
+# Global variables to toggle proxy usage
+USE_PROXY = False  # Set to False to disable proxying entirely
+USE_SCRAPERAPI = True  # Set to False to use Bright Data (if USE_PROXY is True)
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the YouTube Transcript API!"}
+# ScraperAPI settings
+SCRAPERAPI_URL = "http://api.scraperapi.com"
+SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "your_scraperapi_key_here")  # Use environment variable or default
 
-@app.get("/transcript_with_timestamps", response_model=TranscriptWithTimestampsResponse)
-def transcript_with_timestamps(video_id: str):
+# Bright Data proxy settings
+BRIGHT_DATA_PROXY = os.getenv("BRIGHT_DATA_PROXY", "http://username:password@proxy-server:port")  # Use environment variable or default
+
+@app.route('/')
+def home():
+    """Home endpoint for health checks."""
+    return jsonify({'message': 'Welcome to the YouTube Transcript API Service with Proxy Support!'})
+
+@app.route('/transcript', methods=['GET'])
+def get_transcript():
+    """
+    Fetches the transcript for a given YouTube video ID.
+    """
+    video_id = request.args.get('video_id')
+    if not video_id:
+        return jsonify({'error': 'Missing video_id parameter'}), 400
+
+    logging.info(f"Fetching transcript for video_id: {video_id}")
+
     try:
-        # Fetch the transcript
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        # Add delay to avoid potential rate limiting
+        time.sleep(1)
 
-        # Add end timestamps to each transcript segment
-        for segment in transcript_list:
-            segment["end"] = segment["start"] + segment["duration"]
+        # Use proxy configuration if enabled
+        proxies = None
+        if USE_PROXY:
+            if USE_SCRAPERAPI:
+                # ScraperAPI URL
+                url = f"{SCRAPERAPI_URL}?api_key={SCRAPERAPI_KEY}&url=https://www.youtube.com/watch?v={video_id}"
+                response = requests.get(url, timeout=10)
+                if response.status_code != 200:
+                    return jsonify({'error': f"Failed to fetch video page via ScraperAPI: {response.status_code}"}), 500
+            else:
+                # Bright Data Proxy
+                proxies = {
+                    "http": BRIGHT_DATA_PROXY,
+                    "https": BRIGHT_DATA_PROXY
+                }
 
-        response = {
-            "video_id": video_id,
-            "transcript": transcript_list
-        }
-        return response
-    except TranscriptsDisabled:
-        raise HTTPException(status_code=400, detail="Transcripts are disabled for this video.")
-    except VideoUnavailable:
-        raise HTTPException(status_code=404, detail="The video is unavailable.")
-    except NoTranscriptFound:
-        raise HTTPException(status_code=404, detail="No transcript found for this video.")
+        # Fetch transcript using youtube-transcript-api with or without proxy
+        transcript_data = YouTubeTranscriptApi.get_transcript(
+            video_id, 
+            languages=['en'], 
+            proxies=proxies  # Proxies for Bright Data
+        )
+
+        # Combine transcript into a single string
+        transcript_text = "\n".join([entry['text'] for entry in transcript_data])
+        logging.info(f"Transcript fetched successfully for video_id: {video_id}")
+        return jsonify({
+            'video_id': video_id,
+            'transcript': transcript_text
+        })
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+        logging.error(f"Error fetching transcript for video_id {video_id}: {e}")
+        return jsonify({'error': str(e)}), 500
 
-@app.get("/transcript", response_model=TranscriptResponse)
-def transcript(video_id: str):
+@app.route('/youtube_test', methods=['GET'])
+def youtube_test():
+    """
+    Test endpoint to verify connectivity to YouTube using proxy.
+    """
+    logging.info("Testing connectivity to YouTube via proxy...")
     try:
-        # Fetch the transcript
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-
-        # Combine all text segments into a single string
-        transcript_text = " ".join(segment["text"] for segment in transcript_list)
-
-        response = {
-            "video_id": video_id,
-            "transcript": transcript_text
-        }
-        return response
-    except TranscriptsDisabled:
-        raise HTTPException(status_code=400, detail="Transcripts are disabled for this video.")
-    except VideoUnavailable:
-        raise HTTPException(status_code=404, detail="The video is unavailable.")
-    except NoTranscriptFound:
-        raise HTTPException(status_code=404, detail="No transcript found for this video.")
+        proxies = None
+        if USE_PROXY and not USE_SCRAPERAPI:
+            proxies = {
+                "http": BRIGHT_DATA_PROXY,
+                "https": BRIGHT_DATA_PROXY
+            }
+        response = requests.get("https://www.youtube.com", proxies=proxies, timeout=5)
+        logging.info(f"YouTube connectivity test successful: {response.status_code}")
+        return jsonify({"status": "success", "code": response.status_code})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+        logging.error(f"YouTube connectivity test failed: {e}")
+        return jsonify({"status": "failed", "error": str(e)})
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == '__main__':
+    # Use dynamic port for hosting (default: 5000)
+    port = int(os.environ.get('PORT', 5050))
+    app.run(host='0.0.0.0', port=port)
