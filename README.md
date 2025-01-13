@@ -1,6 +1,6 @@
 # YouTube Transcript API with Proxy Support
 
-This Python-based API uses Flask to provide YouTube video transcript fetching with optional proxy integration. It supports ScraperAPI and Bright Data proxies to help avoid rate limits or geo-restrictions when accessing YouTube.
+This Python-based API uses Flask to provide YouTube video transcript fetching with optional proxy integration. It leverages the **[YouTube Transcript API](https://github.com/jdepoix/youtube-transcript-api)**, an open-source library for retrieving YouTube video transcripts programmatically.
 
 ---
 
@@ -181,6 +181,9 @@ Set `USE_PROXY = False` to bypass proxy usage entirely.
 
 ## **Development Notes**
 
+### **Credits**
+This project uses the **[YouTube Transcript API](https://github.com/jdepoix/youtube-transcript-api)** library for transcript retrieval. Special thanks to the contributors of this open-source project for making it easier to programmatically access YouTube transcripts.
+
 ### **Logging**
 Logs are configured to display messages at the `INFO` level. All key operations and errors are logged for debugging purposes.
 
@@ -194,31 +197,6 @@ The script includes a `time.sleep(1)` delay to reduce the risk of rate limiting 
   {
     "error": "An error occurred: VIDEO_ID_NOT_FOUND"
   }
-  ```
-
----
-
-## **Testing Locally**
-
-### **1. Run the Server**
-Ensure the virtual environment is activated:
-```bash
-source venv/bin/activate
-python TranscriptFetch.py
-```
-
-### **2. Test the API with `curl`**
-- Health Check:
-  ```bash
-  curl http://localhost:5050/
-  ```
-- Fetch Transcript:
-  ```bash
-  curl "http://localhost:5050/transcript?video_id=YOUR_VIDEO_ID"
-  ```
-- Test YouTube Connectivity:
-  ```bash
-  curl http://localhost:5050/youtube_test
   ```
 
 ---
