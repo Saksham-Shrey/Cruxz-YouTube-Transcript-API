@@ -9,7 +9,8 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Secure API Key Management
-API_KEY = os.getenv("API_KEY", "your_secure_api_key_here")
+API_KEY = os.getenv("API_KEY")
+
 
 def validate_api_key(request):
     """
