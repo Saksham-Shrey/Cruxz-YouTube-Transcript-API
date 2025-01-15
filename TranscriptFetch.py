@@ -40,6 +40,7 @@ def home():
     """
     return jsonify({'message': 'Welcome to the YouTube Transcript API Service. API is operational.'})
 
+
 @app.route('/transcript', methods=['GET'])
 def get_transcript():
     """
@@ -80,6 +81,7 @@ def get_transcript():
     except Exception as e:
         logging.error(f"Error while fetching transcript for {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
+    
 
 @app.route('/validate_key', methods=['GET'])
 def validate_key():
@@ -88,6 +90,7 @@ def validate_key():
     """
     return jsonify({'message': 'Valid API Key'}) if validate_api_key(request) else jsonify({'error': 'Invalid API Key'}), 403
 
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """
@@ -95,12 +98,14 @@ def health_check():
     """
     return jsonify({'status': 'Service is running.'})
 
+
 def run_server():
     """
     Starts the Flask server with dynamic port binding for production readiness.
     """
     port = int(os.environ.get('PORT', 5050))
     app.run(host='0.0.0.0', port=port)
+
 
 if __name__ == '__main__':
     run_server()
