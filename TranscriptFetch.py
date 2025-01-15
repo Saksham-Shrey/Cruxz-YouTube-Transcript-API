@@ -23,7 +23,7 @@ def validate_api_key(request):
         return False
     return True
 
-@app.before_request
+# @app.before_request
 def enforce_api_key():
     """
     Global API key enforcement for all routes.
