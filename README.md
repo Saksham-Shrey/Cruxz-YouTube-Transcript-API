@@ -1,212 +1,217 @@
-# YouTube Transcript API with Proxy Support
+# CruxIt YouTube Transcript API
 
-This Python-based API uses Flask to provide YouTube video transcript fetching with optional proxy integration. It leverages the **[YouTube Transcript API](https://github.com/jdepoix/youtube-transcript-api)**, an open-source library for retrieving YouTube video transcripts programmatically.
+Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API service for fetching YouTube video transcripts with support for English prioritization and timestamp inclusion. This project leverages the power of the **`youtube-transcript-api`** Python library, integrating it with Flask to create secure and user-friendly API endpoints.
 
----
+## Features
 
-## **Features**
-- **Fetch YouTube Transcripts**: Retrieves subtitles/transcripts for YouTube videos in English (`en`) using `youtube-transcript-api`.
-- **Proxy Support**: Optional use of ScraperAPI or Bright Data proxies for enhanced reliability.
-- **Health Check Endpoint**: Provides a simple endpoint to confirm API functionality.
-- **YouTube Connectivity Test**: Verifies connectivity to YouTube, optionally using proxies.
-- **Customizable Proxy Settings**: Flexible toggling between ScraperAPI and Bright Data for different proxy configurations.
-
----
-
-## **System Requirements**
-- **Python 3.8+**
-- **macOS, Linux, or Windows**
-- Required Libraries:
-  - `Flask`
-  - `youtube-transcript-api`
-  - `requests`
-  - `logging`
+- **Transcript Retrieval**: Fetch YouTube video transcripts with a focus on English (`en-US`, `en-UK`).
+- **Timestamp Support**: Optionally include timestamps (start and duration) for each segment.
+- **Secure API Access**: All endpoints are protected by an API key to prevent unauthorized access.
+- **Health Checks**: Comprehensive health checks to ensure operational stability.
+- **Logging**: Detailed logging for requests and errors to enhance traceability.
+- **Scalable Deployment**: Hosted securely on Railway for reliable performance.
 
 ---
 
-## **Installation**
+## Table of Contents
 
-### 1. **Clone the Repository**
-```bash
-git clone https://github.com/yourusername/youtube-transcript-api.git
-cd youtube-transcript-api
-```
-
-### 2. **Set Up a Virtual Environment**
-To isolate your dependencies:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. **Install Dependencies**
-Install the required Python libraries:
-```bash
-pip install -r requirements.txt
-```
-
-### 4. **Set Up Environment Variables**
-Create a `.env` file in the project root or export environment variables directly in the terminal:
-```env
-SCRAPERAPI_KEY=your_scraperapi_key
-BRIGHT_DATA_PROXY=http://username:password@proxy-server:port
-PORT=5050
-```
-
-Alternatively, use `export` commands in the terminal:
-```bash
-export SCRAPERAPI_KEY=your_scraperapi_key
-export BRIGHT_DATA_PROXY=http://username:password@proxy-server:port
-export PORT=5050
-```
+1. [Getting Started](#getting-started)
+2. [API Endpoints](#api-endpoints)
+3. [Deployment](#deployment)
+4. [Security](#security)
+5. [Environment Variables](#environment-variables)
+6. [Testing](#testing)
+7. [Credits](#credits)
+8. [Additional Notes](#additional-notes)
 
 ---
 
-## **Usage**
+## Getting Started
 
-### 1. **Run the Flask Server Locally**
-Start the API server:
-```bash
-python TranscriptFetch.py
-```
-The API will be hosted at `http://0.0.0.0:5050` by default.
+### Prerequisites
+- Python **3.8** or higher
+- `pip` package manager (for managing dependencies)
+- **Online Hosting Service** for deployment (e.g., Railway, Render, or AWS; Railway is recommended for simplicity and scalability)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/cruxit-youtube-transcript-api.git
+   cd cruxit-youtube-transcript-api
+   ```
+
+2. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Set up your environment variables:
+   ```bash
+   export API_KEY=your_secure_api_key
+   export PORT=5000
+   ```
+
+4. Run the Flask server locally:
+   ```bash
+   python app.py
+   ```
+
+5. Access the API locally:
+   ```
+   http://127.0.0.1:5000/
+   ```
 
 ---
 
-## **Endpoints**
+## API Endpoints
 
 ### **1. Health Check**
 - **URL**: `/`
 - **Method**: `GET`
-- **Description**: Simple endpoint to verify the API is running.
-- **Example Response**:
+- **Description**: Verifies that the service is running.
+- **Headers**:
+  - `x-api-key`: Your secure API key.
+- **Response**:
   ```json
   {
-    "message": "Welcome to the YouTube Transcript API Service with Proxy Support!"
+    "message": "Welcome to the YouTube Transcript API Service. API is operational."
   }
   ```
+
+---
 
 ### **2. Fetch Transcript**
 - **URL**: `/transcript`
 - **Method**: `GET`
-- **Parameters**:
+- **Description**: Fetch the transcript of a YouTube video.
+- **Query Parameters**:
   - `video_id` (required): The YouTube video ID.
-- **Description**: Fetches the transcript for a given YouTube video.
-- **Example Request**:
-  ```bash
-  curl "http://localhost:5050/transcript?video_id=YOUR_VIDEO_ID"
-  ```
-- **Example Response**:
-  ```json
-  {
-    "video_id": "VIDEO_ID",
-    "transcript": "This is the transcript of the video..."
-  }
-  ```
+  - `timestamps` (optional): Set to `true` to include start and duration timestamps.
+- **Headers**:
+  - `x-api-key`: Your secure API key.
+- **Response**:
+  - **With Timestamps**:
+    ```json
+    {
+      "video_id": "dQw4w9WgXcQ",
+      "transcript": [
+        {
+          "start": 0.0,
+          "duration": 5.2,
+          "text": "Hello world."
+        },
+        {
+          "start": 5.2,
+          "duration": 4.5,
+          "text": "This is a test transcript."
+        }
+      ]
+    }
+    ```
+  - **Without Timestamps**:
+    ```json
+    {
+      "video_id": "dQw4w9WgXcQ",
+      "transcript": "Hello world.\nThis is a test transcript."
+    }
+    ```
 
-### **3. Test YouTube Connectivity**
-- **URL**: `/youtube_test`
+---
+
+### **3. Validate API Key**
+- **URL**: `/validate_key`
 - **Method**: `GET`
-- **Description**: Tests connectivity to YouTube, optionally through proxies.
-- **Example Request**:
-  ```bash
-  curl "http://localhost:5050/youtube_test"
-  ```
-- **Example Response**:
+- **Description**: Verifies if the provided API key is valid.
+- **Headers**:
+  - `x-api-key`: Your secure API key.
+- **Response**:
   ```json
   {
-    "status": "success",
-    "code": 200
+    "message": "Valid API Key"
   }
   ```
 
 ---
 
-## **Deployment to Render**
-
-Render is a modern cloud platform for deploying web applications. Follow these steps to deploy your Flask API on Render:
-
-### 1. **Sign Up for Render**
-- Go to [Render](https://render.com) and create an account if you don’t already have one.
-
-### 2. **Create a New Web Service**
-- Click **New** and select **Web Service**.
-- Connect your GitHub repository or upload your project files.
-
-### 3. **Set Environment Variables**
-- In the Render dashboard, navigate to the **Environment** tab for your web service.
-- Add the following environment variables:
-  - `SCRAPERAPI_KEY`
-  - `BRIGHT_DATA_PROXY`
-  - `PORT=5050`
-
-### 4. **Configure Build Settings**
-- In the **Build Command** field, enter:
-  ```bash
-  pip install -r requirements.txt
-  ```
-- In the **Start Command** field, enter:
-  ```bash
-  python TranscriptFetch.py
-  ```
-
-### 5. **Deploy**
-- Click **Deploy** to start your Flask application.
-- Render will assign a URL (e.g., `https://your-app.onrender.com`) to your service.
-
-### 6. **Test the API**
-- Use `curl` or your browser to test the deployed endpoints:
-  - Health Check: `https://your-app.onrender.com/`
-  - Fetch Transcript: `https://your-app.onrender.com/transcript?video_id=YOUR_VIDEO_ID`
-  - YouTube Test: `https://your-app.onrender.com/youtube_test`
-
----
-
-## **Configuration**
-
-### **Proxy Settings**
-1. **Enable Proxies**:
-   - Set `USE_PROXY = True` in `TranscriptFetch.py`.
-2. **ScraperAPI**:
-   - Use `USE_SCRAPERAPI = True` to enable ScraperAPI.
-   - Set the `SCRAPERAPI_KEY` environment variable with your API key.
-3. **Bright Data**:
-   - Use `USE_SCRAPERAPI = False` to switch to Bright Data proxies.
-   - Set the `BRIGHT_DATA_PROXY` environment variable with the Bright Data proxy URL.
-
-### **Disable Proxy**
-Set `USE_PROXY = False` to bypass proxy usage entirely.
-
----
-
-## **Development Notes**
-
-### **Credits**
-This project uses the **[YouTube Transcript API](https://github.com/jdepoix/youtube-transcript-api)** library for transcript retrieval. Special thanks to the contributors of this open-source project for making it easier to programmatically access YouTube transcripts.
-
-### **Logging**
-Logs are configured to display messages at the `INFO` level. All key operations and errors are logged for debugging purposes.
-
-### **Rate Limiting**
-The script includes a `time.sleep(1)` delay to reduce the risk of rate limiting when fetching transcripts.
-
-### **Error Handling**
-- Invalid `video_id` values or network issues will result in an error response.
-- Example Error Response:
+### **4. Health Check with Dependencies**
+- **URL**: `/health`
+- **Method**: `GET`
+- **Description**: Checks the health of the service and its dependencies.
+- **Headers**:
+  - `x-api-key`: Your secure API key.
+- **Response**:
   ```json
   {
-    "error": "An error occurred: VIDEO_ID_NOT_FOUND"
+    "status": "Service is running.",
+    "youtube_access": "OK"
   }
   ```
 
 ---
 
-## **Contributing**
+## Deployment
 
-Contributions are welcome! Please fork the repository, create a new branch, and submit a pull request with your changes.
+### Steps for Deploying to Railway
+1. Create a new Railway project and link your GitHub repository.
+2. Add environment variables under the **Settings** tab:
+   - `API_KEY`: Your secure API key.
+   - `PORT`: The port to run the application (default: 5000).
+3. Deploy the project. Railway will handle hosting and scaling.
+4. The live deployment URL for this project:
+   ```
+   https://cruxit.up.railway.app/
+   ```
 
 ---
 
-## **License**
+## Security
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+- **API Key Enforcement**: All routes are protected by the `x-api-key` header.
+- **HTTPS**: Ensure the Railway project uses HTTPS for secure communication.
+- **Rate Limiting**: Consider implementing rate-limiting to prevent abuse.
+
+---
+
+## Environment Variables
+
+| Variable   | Description                             | Example Value      |
+|------------|-----------------------------------------|--------------------|
+| `API_KEY`  | The API key required to access the API. | `your_secure_api_key` |
+| `PORT`     | The port to run the Flask application.  | `5000`             |
+
+---
+
+## Testing
+
+### Using `curl`
+1. Test the health check:
+   ```bash
+   curl -H "x-api-key: <your_api_key>" https://cruxit.up.railway.app/
+   ```
+
+2. Fetch a transcript:
+   ```bash
+   curl -H "x-api-key: <your_api_key>" "https://cruxit.up.railway.app/transcript?video_id=dQw4w9WgXcQ&timestamps=true"
+   ```
+
+3. Validate API key:
+   ```bash
+   curl -H "x-api-key: <your_api_key>" https://cruxit.up.railway.app/validate_key
+   ```
+
+---
+
+## Credits
+
+- **`youtube-transcript-api` Library**:
+  - This project uses the `youtube-transcript-api` library for fetching video transcripts.
+  - GitHub: [youtube-transcript-api](https://github.com/jdepoix/youtube-transcript-api)
+
+---
+
+## Additional Notes
+
+The deployment of this project at **[https://cruxit.up.railway.app/](https://cruxit.up.railway.app/)** is restricted with **API key requirements** to prevent abuse. Unauthorized access attempts will result in a `403 Forbidden` response.
+
+For any questions or support, feel free to reach out !!
