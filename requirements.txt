@@ -1,6 +1,4 @@
-fastapi
-uvicorn[standard]
-requests
+Flask
 youtube-transcript-api
 requests
 python-dotenv
