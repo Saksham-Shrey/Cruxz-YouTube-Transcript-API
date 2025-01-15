@@ -94,9 +94,23 @@ def validate_key():
 @app.route('/health', methods=['GET'])
 def health_check():
     """
-    Health check endpoint with API key validation.
+    Health check endpoint with dependency checks.
     """
-    return jsonify({'status': 'Service is running.'})
+    youtube_status = test_youtube_access()
+    return jsonify({
+        'status': 'Service is running.',
+        'youtube_access': 'OK' if youtube_status else 'FAILED'
+    })
+
+def test_youtube_access():
+    """
+    Test access to YouTube's transcript API.
+    """
+    try:
+        YouTubeTranscriptApi.get_transcript("dQw4w9WgXcQ", languages=['en'])
+        return True
+    except Exception:
+        return False
 
 
 def run_server():
