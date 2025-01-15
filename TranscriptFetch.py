@@ -23,7 +23,7 @@ def validate_api_key(request):
         return False
     return True
 
-# @app.before_request
+@app.before_request
 def enforce_api_key():
     """
     Global API key enforcement for all routes.
@@ -31,10 +31,7 @@ def enforce_api_key():
     """
     if not validate_api_key(request):
         return jsonify({'error': 'Unauthorized access. Invalid API key.'}), 403
-    
-@app.route('/debug', methods=['GET'])
-def debug():
-    return jsonify({'API_KEY': API_KEY})
+
 
 @app.route('/')
 def home():
