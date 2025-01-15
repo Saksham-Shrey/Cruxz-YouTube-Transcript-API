@@ -26,50 +26,39 @@ def home():
     """Home endpoint for health checks."""
     return jsonify({'message': 'Welcome to the YouTube Transcript API Service with Proxy Support!'})
 
+
 @app.route('/transcript', methods=['GET'])
 def get_transcript():
     """
     Fetches the transcript for a given YouTube video ID.
+    Optional query parameter `timestamps=true` includes start and duration timestamps.
     """
     video_id = request.args.get('video_id')
+    timestamps = request.args.get('timestamps', 'false').lower() == 'true'
+
     if not video_id:
         return jsonify({'error': 'Missing video_id parameter'}), 400
 
-    logging.info(f"Fetching transcript for video_id: {video_id}")
+    logging.info(f"Fetching transcript for video_id: {video_id} with timestamps={timestamps}")
 
     try:
-        # Add delay to avoid potential rate limiting
-        time.sleep(1)
+        # Fetch transcript using youtube-transcript-api
+        transcript_data = YouTubeTranscriptApi.get_transcript(video_id, languages=['en-US', 'en-UK', 'en'])
 
-        # Use proxy configuration if enabled
-        proxies = None
-        if USE_PROXY:
-            if USE_SCRAPERAPI:
-                # ScraperAPI URL
-                url = f"{SCRAPERAPI_URL}?api_key={SCRAPERAPI_KEY}&url=https://www.youtube.com/watch?v={video_id}"
-                response = requests.get(url, timeout=10)
-                if response.status_code != 200:
-                    return jsonify({'error': f"Failed to fetch video page via ScraperAPI: {response.status_code}"}), 500
-            else:
-                # Bright Data Proxy
-                proxies = {
-                    "http": BRIGHT_DATA_PROXY,
-                    "https": BRIGHT_DATA_PROXY
-                }
+        if timestamps:
+            # Include timestamps
+            transcript = [
+                {'start': entry['start'], 'duration': entry['duration'], 'text': entry['text']}
+                for entry in transcript_data
+            ]
+        else:
+            # Combine transcript into a single string
+            transcript = "\n".join([entry['text'] for entry in transcript_data])
 
-        # Fetch transcript using youtube-transcript-api with or without proxy
-        transcript_data = YouTubeTranscriptApi.get_transcript(
-            video_id, 
-            languages=['en'], 
-            proxies=proxies  # Proxies for Bright Data
-        )
-
-        # Combine transcript into a single string
-        transcript_text = "\n".join([entry['text'] for entry in transcript_data])
         logging.info(f"Transcript fetched successfully for video_id: {video_id}")
         return jsonify({
             'video_id': video_id,
-            'transcript': transcript_text
+            'transcript': transcript
         })
 
     except Exception as e:
