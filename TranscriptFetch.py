@@ -113,7 +113,7 @@ def get_captions():
                 else:
                 # Concatenate captions into a single string and remove '&#39;'
                     concatenated_text = " ".join(
-                        text["text"].replace("&#39", " ") for text in parsed_captions if text["text"]
+                        text["text"].replace("&#39;", "'") for text in parsed_captions if text["text"]
                     )
 
                     return jsonify({
