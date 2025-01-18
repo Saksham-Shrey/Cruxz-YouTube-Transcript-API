@@ -49,14 +49,14 @@ def home():
         "status": "API is operational."
     })
 
-app = Flask(__name__)
-
 @app.route('/captions', methods=['GET'])
 def get_captions():
     """
     Fetch and parse captions for a YouTube video by video ID.
+    Allows users to select a specific language for captions.
     """
     video_id = request.args.get('video_id')
+    selected_language = request.args.get('language')
     timestamps = request.args.get('timestamps', 'false').lower() == 'true'  # Defaults to true
 
     if not video_id:
@@ -70,60 +70,71 @@ def get_captions():
         player_data = client.player(video_id=video_id)
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
-        if captions:
-            # Preferred English language codes
-            preferred_languages = ['en', 'en-US', 'en-UK', 'en-IN', 'en-auto']
-
-            # Search for captions in preferred order
-            english_caption = next(
-                (c for lang in preferred_languages for c in captions if c['languageCode'] == lang),
-                None
-            )
-
-            if english_caption:
-                # Fetch the raw XML captions
-                response = requests.get(english_caption['baseUrl'])
-                raw_captions = response.text
-
-                # Parse XML to plain text or JSON
-                root = ET.fromstring(raw_captions)
-                parsed_captions = [
-                    {
-                        "start": float(text.attrib.get("start", 0)),
-                        "duration": float(text.attrib.get("dur", 0)),
-                        "text": text.text or ""
-                    }
-                    for text in root.findall("text")
-                ]
-
-                if timestamps:
-                    # Return parsed captions with timestamps
-                    return jsonify({
-                        "video_id": video_id,
-                        "languageCode": english_caption['languageCode'],
-                        "captions": parsed_captions
-                    })
-                else:
-                    # Concatenate captions into a single string
-                    concatenated_text = " ".join(
-                        text["text"] for text in parsed_captions if text["text"]
-                    )
-
-                    concatenated_text = concatenated_text.replace("&#39;", " ; ")
-
-                    return jsonify({
-                        "video_id": video_id,
-                        "languageCode": english_caption['languageCode'],
-                        "captions": concatenated_text
-                    })
-            else:
-                return jsonify({'error': 'No preferred English captions available for this video.'}), 404
-        else:
+        if not captions:
             return jsonify({'error': 'No captions available for this video.'}), 404
+
+        # If no specific language is selected, return available languages
+        if not selected_language:
+            available_languages = [
+                {
+                    "languageCode": caption['languageCode'],
+                    "name": caption['name']['simpleText']
+                }
+                for caption in captions
+            ]
+            return jsonify({
+                "video_id": video_id,
+                "available_languages": available_languages
+            })
+
+        # Find the caption track for the selected language
+        selected_caption = next(
+            (c for c in captions if c['languageCode'] == selected_language),
+            None
+        )
+
+        if not selected_caption:
+            return jsonify({'error': f'No captions available for the selected language: {selected_language}'}), 404
+
+        # Fetch the raw XML captions
+        response = requests.get(selected_caption['baseUrl'])
+        raw_captions = response.text
+
+        # Parse XML to plain text or JSON
+        root = ET.fromstring(raw_captions)
+        parsed_captions = [
+            {
+                "start": float(text.attrib.get("start", 0)),
+                "duration": float(text.attrib.get("dur", 0)),
+                "text": text.text or ""
+            }
+            for text in root.findall("text")
+        ]
+
+        if timestamps:
+            # Return parsed captions with timestamps
+            return jsonify({
+                "video_id": video_id,
+                "languageCode": selected_language,
+                "captions": parsed_captions
+            })
+        else:
+            # Concatenate captions into a single string
+            concatenated_text = " ".join(
+                text["text"] for text in parsed_captions if text["text"]
+            )
+            concatenated_text = concatenated_text.replace("&#39;", "'")
+
+            return jsonify({
+                "video_id": video_id,
+                "languageCode": selected_language,
+                "captions": concatenated_text
+            })
 
     except Exception as e:
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 
