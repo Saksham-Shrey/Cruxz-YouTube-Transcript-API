@@ -68,11 +68,24 @@ def get_captions():
 
         # Fetch video metadata
         player_data = client.player(video_id=video_id)
-        video_title = player_data.get("videoDetails", {}).get("title", "Unknown Title")
+        video_details = player_data.get("videoDetails", {})
+        video_title = video_details.get("title", "Unknown Title")
+
+        # Extract thumbnail (highest resolution)
+        thumbnail = (
+            video_details.get("thumbnail", {})
+            .get("thumbnails", [])[-1]
+            .get("url", "No Thumbnail Available")
+        )
+
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
         if not captions:
-            return jsonify({'error': 'No captions available for this video.', "video_title": video_title}), 404
+            return jsonify({
+                'error': 'No captions available for this video.',
+                "video_title": video_title,
+                "thumbnail": thumbnail
+            }), 404
 
         # If no specific language is selected, return available languages
         if not selected_language:
@@ -86,6 +99,7 @@ def get_captions():
             return jsonify({
                 "video_id": video_id,
                 "video_title": video_title,
+                "thumbnail": thumbnail,
                 "available_languages": available_languages
             })
 
@@ -96,7 +110,11 @@ def get_captions():
         )
 
         if not selected_caption:
-            return jsonify({'error': f'No captions available for the selected language: {selected_language}', "video_title": video_title}), 404
+            return jsonify({
+                'error': f'No captions available for the selected language: {selected_language}',
+                "video_title": video_title,
+                "thumbnail": thumbnail
+            }), 404
 
         # Fetch the raw XML captions
         response = requests.get(selected_caption['baseUrl'])
@@ -118,6 +136,7 @@ def get_captions():
             return jsonify({
                 "video_id": video_id,
                 "video_title": video_title,
+                "thumbnail": thumbnail,
                 "languageCode": selected_language,
                 "captions": parsed_captions
             })
@@ -133,6 +152,7 @@ def get_captions():
             return jsonify({
                 "video_id": video_id,
                 "video_title": video_title,
+                "thumbnail": thumbnail,
                 "languageCode": selected_language,
                 "captions": concatenated_text
             })
