@@ -111,11 +111,10 @@ def get_captions():
                         "captions": parsed_captions
                     })
                 else:
-                # Concatenate captions into a single string and remove '&#39;'
+                    # Concatenate captions into a single string
                     concatenated_text = " ".join(
-                        text["text"].replace("&#39;", "'") for text in parsed_captions if text["text"]
+                        text["text"] for text in parsed_captions if text["text"]
                     )
-
                     return jsonify({
                         "video_id": video_id,
                         "languageCode": english_caption['languageCode'],
