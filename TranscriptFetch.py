@@ -50,12 +50,21 @@ def home():
     })
 
 
+from flask import Flask, request, jsonify
+import requests
+import xml.etree.ElementTree as ET
+import logging
+import innertube
+
+app = Flask(__name__)
+
 @app.route('/captions', methods=['GET'])
 def get_captions():
     """
     Fetch and parse captions for a YouTube video by video ID.
     """
     video_id = request.args.get('video_id')
+    timestamps = request.args.get('timestamps', 'false').lower() == 'true'  # Defaults to true
 
     if not video_id:
         return jsonify({'error': 'Missing video_id parameter'}), 400
@@ -94,11 +103,23 @@ def get_captions():
                     for text in root.findall("text")
                 ]
 
-                return jsonify({
-                    "video_id": video_id,
-                    "languageCode": english_caption['languageCode'],
-                    "captions": parsed_captions
-                })
+                if timestamps:
+                    # Return parsed captions with timestamps
+                    return jsonify({
+                        "video_id": video_id,
+                        "languageCode": english_caption['languageCode'],
+                        "captions": parsed_captions
+                    })
+                else:
+                    # Concatenate captions into a single string
+                    concatenated_text = " ".join(
+                        text["text"] for text in parsed_captions if text["text"]
+                    )
+                    return jsonify({
+                        "video_id": video_id,
+                        "languageCode": english_caption['languageCode'],
+                        "captions": concatenated_text
+                    })
             else:
                 return jsonify({'error': 'No preferred English captions available for this video.'}), 404
         else:
@@ -107,6 +128,7 @@ def get_captions():
     except Exception as e:
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 def run_server():
