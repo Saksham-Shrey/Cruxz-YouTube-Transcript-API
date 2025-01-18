@@ -30,107 +30,54 @@ def enforce_api_key():
         return jsonify({'error': 'Unauthorized access. Invalid API key.'}), 403
 
 
-@app.route('/')
-def home():
-    """
-    Home endpoint for testing and basic information.
-    """
-    return jsonify({
-        "message": "Welcome to the YouTube Caption API Service.",
-        "endpoints": {
-            "/captions": {
-                "description": "Fetch and parse captions for a YouTube video.",
-                "parameters": {
-                    "video_id": "Required. The YouTube video ID.",
-                    "timestamps": "Optional. Set to 'true' to include timestamps in the response."
-                }
-            }
-        },
-        "status": "API is operational."
-    })
-
-
 @app.route('/captions', methods=['GET'])
 def get_captions():
     """
     Fetch and parse captions for a YouTube video by video ID.
-    Includes options for timestamps and English subtitle preferences.
     """
     video_id = request.args.get('video_id')
-    timestamps = request.args.get('timestamps', 'false').lower() == 'true'
 
-    if not video_id or not video_id.isalnum() or len(video_id) not in range(10, 15):
-        return jsonify({'error': 'Invalid or missing video_id parameter.'}), 400
+    if not video_id:
+        return jsonify({'error': 'Missing video_id parameter'}), 400
 
     try:
         # Initialize InnerTube client
         client = innertube.InnerTube("WEB")
 
         # Fetch video metadata
-        logging.info(f"Fetching video metadata for video_id: {video_id}")
         player_data = client.player(video_id=video_id)
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
-        if not captions:
-            logging.warning(f"No captions available for video_id: {video_id}")
+        if captions:
+            english_caption = next((c for c in captions if c['languageCode'] == 'en'), None)
+            if english_caption:
+                # Fetch the raw XML captions
+                response = requests.get(english_caption['baseUrl'])
+                raw_captions = response.text
+
+                # Parse XML to plain text or JSON
+                root = ET.fromstring(raw_captions)
+                parsed_captions = [
+                    {
+                        "start": float(text.attrib["start"]),
+                        "duration": float(text.attrib["dur"]),
+                        "text": text.text
+                    }
+                    for text in root.findall("text")
+                ]
+
+                return jsonify({
+                    "video_id": video_id,
+                    "captions": parsed_captions
+                })
+            else:
+                return jsonify({'error': 'No English captions available for this video.'}), 404
+        else:
             return jsonify({'error': 'No captions available for this video.'}), 404
 
-        # English subtitle preferences in order
-        preferred_languages = ['en-US', 'en-UK', 'en-IN', 'en', 'a.en']
-
-        english_caption = None
-        for lang in preferred_languages:
-            english_caption = next((c for c in captions if c['languageCode'] == lang), None)
-            if english_caption:
-                break
-
-        if not english_caption:
-            logging.warning(f"No preferred English captions available for video_id: {video_id}")
-            return jsonify({'error': 'No preferred English captions available for this video.'}), 404
-
-        # Fetch the raw XML captions
-        logging.info(f"Fetching captions for video_id: {video_id}, language: {english_caption['languageCode']}")
-        try:
-            response = requests.get(english_caption['baseUrl'], timeout=10)
-            response.raise_for_status()  # Raise an error for bad HTTP responses
-        except requests.RequestException as e:
-            logging.error(f"Failed to fetch captions for video_id {video_id}: {e}")
-            return jsonify({'error': 'Failed to fetch captions from YouTube.'}), 500
-
-        # Parse XML
-        try:
-            root = ET.fromstring(response.text)
-            parsed_captions = [
-                {
-                    "start": float(text.attrib["start"]),
-                    "duration": float(text.attrib["dur"]),
-                    "text": text.text or ""
-                }
-                for text in root.findall("text")
-            ]
-        except ET.ParseError as e:
-            logging.error(f"Failed to parse captions XML for video_id {video_id}: {e}")
-            return jsonify({'error': 'Failed to parse captions XML.'}), 500
-
-        if timestamps:
-            # Return captions with timestamps
-            return jsonify({
-                "video_id": video_id,
-                "language": english_caption['languageCode'],
-                "captions": parsed_captions
-            })
-        else:
-            # Combine captions text without timestamps
-            combined_text = "\n".join([entry["text"] for entry in parsed_captions])
-            return jsonify({
-                "video_id": video_id,
-                "language": english_caption['languageCode'],
-                "captions": combined_text
-            })
-
     except Exception as e:
-        logging.error(f"Unexpected error while processing video_id {video_id}: {e}")
-        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
+        logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 def run_server():
