@@ -49,13 +49,6 @@ def home():
         "status": "API is operational."
     })
 
-
-from flask import Flask, request, jsonify
-import requests
-import xml.etree.ElementTree as ET
-import logging
-import innertube
-
 app = Flask(__name__)
 
 @app.route('/captions', methods=['GET'])
