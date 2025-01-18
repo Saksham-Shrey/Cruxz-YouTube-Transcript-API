@@ -1,5 +1,5 @@
 Flask
-youtube-transcript-api
+innertube
 requests
 python-dotenv
 

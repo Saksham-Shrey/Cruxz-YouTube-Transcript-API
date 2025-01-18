@@ -1,7 +1,8 @@
 import os
 import logging
+import requests
 from flask import Flask, request, jsonify
-from youtube_transcript_api import YouTubeTranscriptApi
+import innertube
 
 app = Flask(__name__)
 
@@ -23,6 +24,7 @@ def validate_api_key(request):
         return False
     return True
 
+
 @app.before_request
 def enforce_api_key():
     """
@@ -38,50 +40,63 @@ def home():
     """
     Home endpoint for health checks.
     """
-    return jsonify({'message': 'Welcome to the YouTube Transcript API Service. API is operational.'})
+    return jsonify({'message': 'Welcome to the YouTube Caption API Service. API is operational.'})
 
 
-@app.route('/transcript', methods=['GET'])
-def get_transcript():
+@app.route('/captions', methods=['GET'])
+def get_captions():
     """
-    Fetch the transcript of a YouTube video by its video ID.
+    Fetch the captions of a YouTube video by its video ID.
     Query Parameters:
     - video_id: Required, the YouTube video ID.
-    - timestamps: Optional, if set to 'true', includes start and duration timestamps.
     """
     video_id = request.args.get('video_id')
-    timestamps = request.args.get('timestamps', 'false').lower() == 'true'
 
     if not video_id:
         logging.error("Missing 'video_id' parameter.")
         return jsonify({'error': 'Missing video_id parameter'}), 400
 
-    logging.info(f"Processing transcript request for video_id: {video_id} with timestamps={timestamps}")
+    logging.info(f"Processing captions request for video_id: {video_id}")
 
     try:
-        # Fetch transcript data
-        transcript_data = YouTubeTranscriptApi.get_transcript(video_id, languages=['en-US', 'en-UK', 'en'])
-        
-        # Process transcript with or without timestamps
-        if timestamps:
-            transcript = [
-                {
-                    'start': entry['start'],
-                    'duration': entry['duration'],
-                    'text': entry['text']
-                }
-                for entry in transcript_data
-            ]
-        else:
-            transcript = "\n".join([entry['text'] for entry in transcript_data])
+        # Initialize InnerTube client
+        client = innertube.InnerTube("WEB")
 
-        logging.info(f"Successfully fetched transcript for video_id: {video_id}")
-        return jsonify({'video_id': video_id, 'transcript': transcript})
+        # Fetch video metadata
+        player_data = client.player(video_id=video_id)
+
+        # Access captions
+        captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
+
+        if captions:
+            logging.info(f"Available captions found for video_id: {video_id}")
+            captions_list = [
+                {"language": caption["name"]["simpleText"], "url": caption["baseUrl"]}
+                for caption in captions
+            ]
+
+            # Check for English captions and fetch them
+            english_caption = next((c for c in captions if c['languageCode'] == 'en'), None)
+            if english_caption:
+                response = requests.get(english_caption['baseUrl'])
+                captions_content = response.text
+            else:
+                captions_content = None
+
+            return jsonify({
+                'video_id': video_id,
+                'captions': captions_list,
+                'english_captions': captions_content
+            })
+
+        else:
+            logging.info(f"No captions available for video_id: {video_id}")
+            return jsonify({'video_id': video_id, 'captions': [], 'english_captions': None})
 
     except Exception as e:
-        logging.error(f"Error while fetching transcript for {video_id}: {e}")
+        logging.error(f"Error while fetching captions for {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
-    
+
 
 @app.route('/validate_key', methods=['GET'])
 def validate_key():
@@ -102,12 +117,14 @@ def health_check():
         'youtube_access': 'OK' if youtube_status else 'FAILED'
     })
 
+
 def test_youtube_access():
     """
-    Test access to YouTube's transcript API.
+    Test access to YouTube's caption API.
     """
     try:
-        YouTubeTranscriptApi.get_transcript("dQw4w9WgXcQ", languages=['en'])
+        client = innertube.InnerTube("WEB")
+        client.player(video_id="dQw4w9WgXcQ")  # Example video
         return True
     except Exception:
         return False
