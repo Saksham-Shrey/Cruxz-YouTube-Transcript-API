@@ -30,6 +30,26 @@ def enforce_api_key():
         return jsonify({'error': 'Unauthorized access. Invalid API key.'}), 403
 
 
+@app.route('/')
+def home():
+    """
+    Home endpoint for testing and basic information.
+    """
+    return jsonify({
+        "message": "Welcome to the YouTube Caption API Service.",
+        "endpoints": {
+            "/captions": {
+                "description": "Fetch and parse captions for a YouTube video.",
+                "parameters": {
+                    "video_id": "Required. The YouTube video ID.",
+                    "timestamps": "Optional. Set to 'true' to include timestamps in the response."
+                }
+            }
+        },
+        "status": "API is operational."
+    })
+
+
 @app.route('/captions', methods=['GET'])
 def get_captions():
     """
@@ -49,7 +69,15 @@ def get_captions():
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
         if captions:
-            english_caption = next((c for c in captions if c['languageCode'] == 'en'), None)
+            # Preferred English language codes
+            preferred_languages = ['en', 'en-US', 'en-UK', 'en-IN', 'en-auto']
+
+            # Search for captions in preferred order
+            english_caption = next(
+                (c for lang in preferred_languages for c in captions if c['languageCode'] == lang),
+                None
+            )
+
             if english_caption:
                 # Fetch the raw XML captions
                 response = requests.get(english_caption['baseUrl'])
@@ -59,19 +87,20 @@ def get_captions():
                 root = ET.fromstring(raw_captions)
                 parsed_captions = [
                     {
-                        "start": float(text.attrib["start"]),
-                        "duration": float(text.attrib["dur"]),
-                        "text": text.text
+                        "start": float(text.attrib.get("start", 0)),
+                        "duration": float(text.attrib.get("dur", 0)),
+                        "text": text.text or ""
                     }
                     for text in root.findall("text")
                 ]
 
                 return jsonify({
                     "video_id": video_id,
+                    "languageCode": english_caption['languageCode'],
                     "captions": parsed_captions
                 })
             else:
-                return jsonify({'error': 'No English captions available for this video.'}), 404
+                return jsonify({'error': 'No preferred English captions available for this video.'}), 404
         else:
             return jsonify({'error': 'No captions available for this video.'}), 404
 
