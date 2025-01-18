@@ -1,15 +1,16 @@
-# CruxIt YouTube Transcript API
+# CruxIt YouTube Caption API
 
-Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API service for fetching YouTube video transcripts with support for English prioritization and timestamp inclusion. This project leverages the power of the **`youtube-transcript-api`** Python library, integrating it with Flask to create secure and user-friendly API endpoints.
+This is **CruxIt YouTube Caption API**, a robust and secure API service for fetching YouTube video captions with enhanced functionality. This project leverages the power of the **`innertube`** library, integrating it with Flask to create secure and user-friendly API endpoints.
 
 ## Features
 
-- **Transcript Retrieval**: Fetch YouTube video transcripts with a focus on English (`en-US`, `en-UK`).
-- **Timestamp Support**: Optionally include timestamps (start and duration) for each segment.
+- **Caption Retrieval**: Fetch YouTube video captions in various languages.
+- **Language Support**: Return available languages for captions if a specific one isn’t provided.
+- **Timestamp Support**: Optionally include timestamps (start and duration) for each caption segment.
+- **Video Metadata**: Fetch video title, thumbnail, channel name, and channel logo.
 - **Secure API Access**: All endpoints are protected by an API key to prevent unauthorized access.
-- **Health Checks**: Comprehensive health checks to ensure operational stability.
 - **Logging**: Detailed logging for requests and errors to enhance traceability.
-- **Scalable Deployment**: Hosted securely on Railway for reliable performance.
+- **Scalable Deployment**: Hosted securely on platforms like Railway for reliable performance.
 
 ---
 
@@ -31,14 +32,14 @@ Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API servic
 ### Prerequisites
 - Python **3.8** or higher
 - `pip` package manager (for managing dependencies)
-- **Online Hosting Service** for deployment (e.g., Railway, Render, or AWS; Railway is recommended for simplicity and scalability)
+- Hosting platform (e.g., Railway, Render, AWS)
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/cruxit-youtube-transcript-api.git
-   cd cruxit-youtube-transcript-api
+   git clone https://github.com/yourusername/cruxit-youtube-caption-api.git
+   cd cruxit-youtube-caption-api
    ```
 
 2. Install the required dependencies:
@@ -74,19 +75,32 @@ Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API servic
   - `x-api-key`: Your secure API key.
 - **Response**:
   ```json
-  {
-    "message": "Welcome to the YouTube Transcript API Service. API is operational."
-  }
+   {
+    "endpoints": {
+        "/captions": {
+            "description": "Fetch and parse captions for a YouTube video.",
+            "notes": "If the 'language' parameter is not provided, the API returns available languages for the video.",
+            "parameters": {
+                "language": "Optional. The language code to fetch captions in a specific language.",
+                "timestamps": "Optional. Set to 'true' to include timestamps in the response.",
+                "video_id": "Required. The YouTube video ID."
+            }
+        }
+    },
+    "message": "Welcome to the YouTube Caption API Service.",
+    "status": "API is operational."
+   }
   ```
 
 ---
 
-### **2. Fetch Transcript**
-- **URL**: `/transcript`
+### **2. Fetch Captions**
+- **URL**: `/captions`
 - **Method**: `GET`
-- **Description**: Fetch the transcript of a YouTube video.
+- **Description**: Fetch the captions for a YouTube video.
 - **Query Parameters**:
   - `video_id` (required): The YouTube video ID.
+  - `language` (optional): Specify a language code for captions.
   - `timestamps` (optional): Set to `true` to include start and duration timestamps.
 - **Headers**:
   - `x-api-key`: Your secure API key.
@@ -95,7 +109,12 @@ Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API servic
     ```json
     {
       "video_id": "dQw4w9WgXcQ",
-      "transcript": [
+      "video_title": "Video Title",
+      "thumbnail": "https://example.com/thumbnail.jpg",
+      "channel_name": "Channel Name",
+      "channel_logo": "https://example.com/logo.jpg",
+      "languageCode": "en",
+      "captions": [
         {
           "start": 0.0,
           "duration": 5.2,
@@ -104,7 +123,7 @@ Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API servic
         {
           "start": 5.2,
           "duration": 4.5,
-          "text": "This is a test transcript."
+          "text": "This is a test caption."
         }
       ]
     }
@@ -113,38 +132,37 @@ Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API servic
     ```json
     {
       "video_id": "dQw4w9WgXcQ",
-      "transcript": "Hello world.\nThis is a test transcript."
+      "video_title": "Video Title",
+      "thumbnail": "https://example.com/thumbnail.jpg",
+      "channel_name": "Channel Name",
+      "channel_logo": "https://example.com/logo.jpg",
+      "languageCode": "en",
+      "captions": "Hello world. This is a test caption."
     }
     ```
 
 ---
 
-### **3. Validate API Key**
-- **URL**: `/validate_key`
-- **Method**: `GET`
-- **Description**: Verifies if the provided API key is valid.
-- **Headers**:
-  - `x-api-key`: Your secure API key.
+### **3. Available Languages**
+- **Description**: If the `language` parameter is not provided, the API returns available languages for the video.
 - **Response**:
   ```json
   {
-    "message": "Valid API Key"
-  }
-  ```
-
----
-
-### **4. Health Check with Dependencies**
-- **URL**: `/health`
-- **Method**: `GET`
-- **Description**: Checks the health of the service and its dependencies.
-- **Headers**:
-  - `x-api-key`: Your secure API key.
-- **Response**:
-  ```json
-  {
-    "status": "Service is running.",
-    "youtube_access": "OK"
+    "video_id": "dQw4w9WgXcQ",
+    "video_title": "Video Title",
+    "thumbnail": "https://example.com/thumbnail.jpg",
+    "channel_name": "Channel Name",
+    "channel_logo": "https://example.com/logo.jpg",
+    "available_languages": [
+      {
+        "languageCode": "en",
+        "name": "English"
+      },
+      {
+        "languageCode": "fr",
+        "name": "French"
+      }
+    ]
   }
   ```
 
@@ -158,17 +176,13 @@ Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API servic
    - `API_KEY`: Your secure API key.
    - `PORT`: The port to run the application (default: 5000).
 3. Deploy the project. Railway will handle hosting and scaling.
-4. The live deployment URL for this project:
-   ```
-   https://cruxit.up.railway.app/
-   ```
 
 ---
 
 ## Security
 
 - **API Key Enforcement**: All routes are protected by the `x-api-key` header.
-- **HTTPS**: Ensure the Railway project uses HTTPS for secure communication.
+- **HTTPS**: Ensure the deployment uses HTTPS for secure communication.
 - **Rate Limiting**: Consider implementing rate-limiting to prevent abuse.
 
 ---
@@ -187,31 +201,24 @@ Welcome to the **CruxIt YouTube Transcript API**, a robust and secure API servic
 ### Using `curl`
 1. Test the health check:
    ```bash
-   curl -H "x-api-key: <your_api_key>" https://cruxit.up.railway.app/
+   curl -H "x-api-key: <your_api_key>" http://127.0.0.1:5000/
    ```
 
-2. Fetch a transcript:
+2. Fetch captions:
    ```bash
-   curl -H "x-api-key: <your_api_key>" "https://cruxit.up.railway.app/transcript?video_id=dQw4w9WgXcQ&timestamps=true"
-   ```
-
-3. Validate API key:
-   ```bash
-   curl -H "x-api-key: <your_api_key>" https://cruxit.up.railway.app/validate_key
+   curl -H "x-api-key: <your_api_key>" "http://127.0.0.1:5000/captions?video_id=dQw4w9WgXcQ&timestamps=true"
    ```
 
 ---
 
 ## Credits
 
-- **`youtube-transcript-api` Library**:
-  - This project uses the `youtube-transcript-api` library for fetching video transcripts.
-  - GitHub: [youtube-transcript-api](https://github.com/jdepoix/youtube-transcript-api)
+- **`innertube` Library**:
+  - This project uses the `innertube` library for fetching video metadata and captions.
+  - GitHub: [innertube](https://github.com/tombulled/innertube)
 
 ---
 
 ## Additional Notes
 
-The deployment of this project at **[https://cruxit.up.railway.app/](https://cruxit.up.railway.app/)** is restricted with **API key requirements** to prevent abuse. Unauthorized access attempts will result in a `403 Forbidden` response.
-
-For any questions or support, feel free to reach out !!
+This project is designed to securely fetch captions and metadata for YouTube videos. For any questions or support, feel free to reach out !!
