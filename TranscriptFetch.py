@@ -78,13 +78,25 @@ def get_captions():
             .get("url", "No Thumbnail Available")
         )
 
+        # Extract channel name and logo
+        channel_name = video_details.get("author", "Unknown Channel")
+        channel_logo = (
+            video_details.get("channelThumbnailSupportedRenderers", {})
+            .get("channelThumbnailWithLinkRenderer", {})
+            .get("thumbnail", {})
+            .get("thumbnails", [])[-1]
+            .get("url", "No Channel Logo Available")
+        )
+
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
         if not captions:
             return jsonify({
                 'error': 'No captions available for this video.',
                 "video_title": video_title,
-                "thumbnail": thumbnail
+                "thumbnail": thumbnail,
+                "channel_name": channel_name,
+                "channel_logo": channel_logo
             }), 404
 
         # If no specific language is selected, return available languages
@@ -100,6 +112,8 @@ def get_captions():
                 "video_id": video_id,
                 "video_title": video_title,
                 "thumbnail": thumbnail,
+                "channel_name": channel_name,
+                "channel_logo": channel_logo,
                 "available_languages": available_languages
             })
 
@@ -113,7 +127,9 @@ def get_captions():
             return jsonify({
                 'error': f'No captions available for the selected language: {selected_language}',
                 "video_title": video_title,
-                "thumbnail": thumbnail
+                "thumbnail": thumbnail,
+                "channel_name": channel_name,
+                "channel_logo": channel_logo
             }), 404
 
         # Fetch the raw XML captions
@@ -137,6 +153,8 @@ def get_captions():
                 "video_id": video_id,
                 "video_title": video_title,
                 "thumbnail": thumbnail,
+                "channel_name": channel_name,
+                "channel_logo": channel_logo,
                 "languageCode": selected_language,
                 "captions": parsed_captions
             })
@@ -146,13 +164,15 @@ def get_captions():
                 text["text"] for text in parsed_captions if text["text"]
             )
 
-            concatenated_text = concatenated_text.replace("&#39;", " ; ")
-            concatenated_text = concatenated_text.replace("\n", "  ")
+            concatenated_text = concatenated_text.replace("&#39;", "'")
+            concatenated_text = concatenated_text.replace("\n", " ")
 
             return jsonify({
                 "video_id": video_id,
                 "video_title": video_title,
                 "thumbnail": thumbnail,
+                "channel_name": channel_name,
+                "channel_logo": channel_logo,
                 "languageCode": selected_language,
                 "captions": concatenated_text
             })
@@ -160,6 +180,7 @@ def get_captions():
     except Exception as e:
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 
