@@ -57,7 +57,7 @@ def get_captions():
     """
     video_id = request.args.get('video_id')
     selected_language = request.args.get('language')
-    timestamps = request.args.get('timestamps', 'false').lower() == 'true'  # Defaults to true
+    timestamps = request.args.get('timestamps', 'false').lower() == 'true'  # Defaults to false
 
     if not video_id:
         return jsonify({'error': 'Missing video_id parameter'}), 400
@@ -68,10 +68,11 @@ def get_captions():
 
         # Fetch video metadata
         player_data = client.player(video_id=video_id)
+        video_title = player_data.get("videoDetails", {}).get("title", "Unknown Title")
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
         if not captions:
-            return jsonify({'error': 'No captions available for this video.'}), 404
+            return jsonify({'error': 'No captions available for this video.', "video_title": video_title}), 404
 
         # If no specific language is selected, return available languages
         if not selected_language:
@@ -84,6 +85,7 @@ def get_captions():
             ]
             return jsonify({
                 "video_id": video_id,
+                "video_title": video_title,
                 "available_languages": available_languages
             })
 
@@ -94,7 +96,7 @@ def get_captions():
         )
 
         if not selected_caption:
-            return jsonify({'error': f'No captions available for the selected language: {selected_language}'}), 404
+            return jsonify({'error': f'No captions available for the selected language: {selected_language}', "video_title": video_title}), 404
 
         # Fetch the raw XML captions
         response = requests.get(selected_caption['baseUrl'])
@@ -115,6 +117,7 @@ def get_captions():
             # Return parsed captions with timestamps
             return jsonify({
                 "video_id": video_id,
+                "video_title": video_title,
                 "languageCode": selected_language,
                 "captions": parsed_captions
             })
@@ -127,9 +130,9 @@ def get_captions():
             concatenated_text = concatenated_text.replace("&#39;", " ; ")
             concatenated_text = concatenated_text.replace("\n", "  ")
 
-
             return jsonify({
                 "video_id": video_id,
+                "video_title": video_title,
                 "languageCode": selected_language,
                 "captions": concatenated_text
             })
@@ -137,6 +140,7 @@ def get_captions():
     except Exception as e:
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 
