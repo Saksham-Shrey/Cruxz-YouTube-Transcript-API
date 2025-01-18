@@ -42,12 +42,15 @@ def home():
                 "description": "Fetch and parse captions for a YouTube video.",
                 "parameters": {
                     "video_id": "Required. The YouTube video ID.",
+                    "language": "Optional. The language code to fetch captions in a specific language.",
                     "timestamps": "Optional. Set to 'true' to include timestamps in the response."
-                }
+                },
+                "notes": "If the 'language' parameter is not provided, the API returns available languages for the video."
             }
         },
         "status": "API is operational."
     })
+
 
 @app.route('/captions', methods=['GET'])
 def get_captions():
