@@ -71,22 +71,19 @@ def get_captions():
         video_details = player_data.get("videoDetails", {})
         video_title = video_details.get("title", "Unknown Title")
 
-        # Extract thumbnail (highest resolution)
-        thumbnail = (
-            video_details.get("thumbnail", {})
-            .get("thumbnails", [])[-1]
-            .get("url", "No Thumbnail Available")
-        )
+        # Extract thumbnail (safely handle missing or empty list)
+        thumbnails = video_details.get("thumbnail", {}).get("thumbnails", [])
+        thumbnail = thumbnails[-1]["url"] if thumbnails else "No Thumbnail Available"
 
-        # Extract channel name and logo
+        # Extract channel name and logo (safely handle missing or empty list)
         channel_name = video_details.get("author", "Unknown Channel")
-        channel_logo = (
+        channel_thumbnails = (
             video_details.get("channelThumbnailSupportedRenderers", {})
             .get("channelThumbnailWithLinkRenderer", {})
             .get("thumbnail", {})
-            .get("thumbnails", [])[-1]
-            .get("url", "No Channel Logo Available")
+            .get("thumbnails", [])
         )
+        channel_logo = channel_thumbnails[-1]["url"] if channel_thumbnails else "No Channel Logo Available"
 
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
@@ -180,6 +177,7 @@ def get_captions():
     except Exception as e:
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 
