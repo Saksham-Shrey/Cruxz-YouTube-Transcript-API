@@ -156,7 +156,7 @@ def get_captions():
                 "channel_name": channel_name,
                 "channel_logo": channel_logo,
                 "languageCode": selected_language,
-                "timestamps_captions": parsed_captions
+                "timestamped_captions": parsed_captions
             })
         else:
             # Concatenate captions into a single string
