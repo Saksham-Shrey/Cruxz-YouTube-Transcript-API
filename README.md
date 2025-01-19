@@ -55,7 +55,7 @@ This is **CruxIt YouTube Caption API**, a robust and secure API service for fetc
 
 4. Run the Flask server locally:
    ```bash
-   python app.py
+   python TranscriptFetch.py
    ```
 
 5. Access the API locally:
