@@ -2,10 +2,12 @@ from xml.etree import ElementTree as ET
 import os
 import logging
 import requests
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.responses import JSONResponse
 import innertube
+import uvicorn
 
-app = Flask(__name__)
+app = FastAPI()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -13,29 +15,21 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 API_KEY = os.getenv("API_KEY")
 
 
-def validate_api_key(request):
+async def validate_api_key(request: Request):
     """
-    Validate the API key from the request headers.
+    Middleware to validate the API key from the request headers.
     """
     provided_key = request.headers.get("x-api-key")
-    return provided_key == API_KEY
+    if provided_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Unauthorized access. Invalid API key.")
 
 
-@app.before_request
-def enforce_api_key():
-    """
-    Enforce API key validation for all routes.
-    """
-    if not validate_api_key(request):
-        return jsonify({'error': 'Unauthorized access. Invalid API key.'}), 403
-
-
-@app.route('/')
-def home():
+@app.get("/", dependencies=[Depends(validate_api_key)])
+async def home():
     """
     Home endpoint for testing and basic information.
     """
-    return jsonify({
+    return {
         "message": "Welcome to the YouTube Caption API Service.",
         "endpoints": {
             "/captions": {
@@ -49,21 +43,16 @@ def home():
             }
         },
         "status": "API is operational."
-    })
+    }
 
 
-@app.route('/captions', methods=['GET'])
-def get_captions():
+@app.get("/captions", dependencies=[Depends(validate_api_key)])
+async def get_captions(video_id: str, language: str = None, timestamps: str = "false"):
     """
     Fetch and parse captions for a YouTube video by video ID.
     Allows users to select a specific language for captions.
     """
-    video_id = request.args.get('video_id')
-    selected_language = request.args.get('language')
-    timestamps = request.args.get('timestamps', 'false').lower() == 'true'  # Defaults to false
-
-    if not video_id:
-        return jsonify({'error': 'Missing video_id parameter'}), 400
+    timestamps = timestamps.lower() == 'true'  # Defaults to false
 
     try:
         # Initialize InnerTube client
@@ -91,16 +80,16 @@ def get_captions():
         captions = player_data.get("captions", {}).get("playerCaptionsTracklistRenderer", {}).get("captionTracks", [])
 
         if not captions:
-            return jsonify({
+            return JSONResponse(status_code=404, content={
                 'error': 'No captions available for this video.',
                 "video_title": video_title,
                 "thumbnail": thumbnail,
                 "channel_name": channel_name,
                 "channel_logo": channel_logo
-            }), 404
+            })
 
         # If no specific language is selected, return available languages
-        if not selected_language:
+        if not language:
             available_languages = [
                 {
                     "languageCode": caption['languageCode'],
@@ -108,29 +97,29 @@ def get_captions():
                 }
                 for caption in captions
             ]
-            return jsonify({
+            return {
                 "video_id": video_id,
                 "video_title": video_title,
                 "thumbnail": thumbnail,
                 "channel_name": channel_name,
                 "channel_logo": channel_logo,
                 "available_languages": available_languages
-            })
+            }
 
         # Find the caption track for the selected language
         selected_caption = next(
-            (c for c in captions if c['languageCode'] == selected_language),
+            (c for c in captions if c['languageCode'] == language),
             None
         )
 
         if not selected_caption:
-            return jsonify({
-                'error': f'No captions available for the selected language: {selected_language}',
+            return JSONResponse(status_code=404, content={
+                'error': f'No captions available for the selected language: {language}',
                 "video_title": video_title,
                 "thumbnail": thumbnail,
                 "channel_name": channel_name,
                 "channel_logo": channel_logo
-            }), 404
+            })
 
         # Fetch the raw XML captions
         response = requests.get(selected_caption['baseUrl'])
@@ -149,15 +138,15 @@ def get_captions():
 
         if timestamps:
             # Return parsed captions with timestamps
-            return jsonify({
+            return {
                 "video_id": video_id,
                 "video_title": video_title,
                 "thumbnail": thumbnail,
                 "channel_name": channel_name,
                 "channel_logo": channel_logo,
-                "languageCode": selected_language,
+                "languageCode": language,
                 "timestamped_captions": parsed_captions
-            })
+            }
         else:
             # Concatenate captions into a single string
             concatenated_text = " ".join(
@@ -167,33 +156,28 @@ def get_captions():
             concatenated_text = concatenated_text.replace("&#39;", " ; ")
             concatenated_text = concatenated_text.replace("\n", "  ")
 
-            return jsonify({
+            return {
                 "video_id": video_id,
                 "video_title": video_title,
                 "thumbnail": thumbnail,
                 "channel_name": channel_name,
                 "channel_logo": channel_logo,
-                "languageCode": selected_language,
+                "languageCode": language,
                 "captions": concatenated_text
-            })
+            }
 
     except Exception as e:
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-
-
-
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def run_server():
     """
-    Start the Flask server.
+    Run the FastAPI server using Uvicorn.
     """
-    port = int(os.environ.get('PORT', 5050))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.getenv("PORT", 5050))
+    uvicorn.run("TranscriptFetch:app", host="0.0.0.0", port=port, log_level="info")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_server()
