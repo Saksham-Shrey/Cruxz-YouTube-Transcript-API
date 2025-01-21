@@ -156,8 +156,8 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
                 text["text"] for text in parsed_captions if text["text"]
             )
 
-            concatenated_text = concatenated_text.replace("&#39;", " ; ")
-            concatenated_text = concatenated_text.replace("\n", "  ")
+            concatenated_text = concatenated_text.replace("&#39;", "'")
+            concatenated_text = concatenated_text.replace("\n", " ; ")
 
             return {
                 "video_id": video_id,
