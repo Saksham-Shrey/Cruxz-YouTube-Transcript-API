@@ -2,7 +2,7 @@ from xml.etree import ElementTree as ET
 import os
 import logging
 import requests
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import innertube
 import uvicorn
@@ -12,19 +12,22 @@ app = FastAPI()
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-API_KEY = os.getenv("API_KEY")
+# API Key
+API_KEY = os.getenv("API_KEY")  # Replace with your actual API key
 
-
-async def validate_api_key(request: Request):
+# Middleware for API Key Validation
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
     """
-    Middleware to validate the API key from the request headers.
+    Middleware to validate API key before processing requests.
     """
     provided_key = request.headers.get("x-api-key")
     if provided_key != API_KEY:
-        raise HTTPException(status_code=403, detail="Unauthorized access. Invalid API key.")
+        return JSONResponse(content={"error": "Unauthorized access. Invalid API key."}, status_code=403)
+    return await call_next(request)
 
-
-@app.get("/", dependencies=[Depends(validate_api_key)])
+# Home Endpoint
+@app.get("/")
 async def home():
     """
     Home endpoint for testing and basic information.
@@ -45,8 +48,8 @@ async def home():
         "status": "API is operational."
     }
 
-
-@app.get("/captions", dependencies=[Depends(validate_api_key)])
+# Captions Endpoint
+@app.get("/captions")
 async def get_captions(video_id: str, language: str = None, timestamps: str = "false"):
     """
     Fetch and parse captions for a YouTube video by video ID.
@@ -170,7 +173,7 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# Run the server
 def run_server():
     """
     Run the FastAPI server using Uvicorn.
