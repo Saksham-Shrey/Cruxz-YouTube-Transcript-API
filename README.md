@@ -1,6 +1,6 @@
 # CruxIt YouTube Caption API
 
-This is **CruxIt YouTube Caption API**, a robust and secure API service for fetching YouTube video captions with enhanced functionality. This project leverages the power of the **`innertube`** library, integrating it with Flask to create secure and user-friendly API endpoints.
+This is **CruxIt YouTube Caption API**, a robust and secure API service for fetching YouTube video captions with enhanced functionality. This project leverages the power of the **`innertube`** library, integrating it with FastAPI to create secure and user-friendly API endpoints.
 
 ## Features
 
@@ -53,7 +53,7 @@ This is **CruxIt YouTube Caption API**, a robust and secure API service for fetc
    export PORT=5000
    ```
 
-4. Run the Flask server locally:
+4. Run the FastAPI server locally:
    ```bash
    python TranscriptFetch.py
    ```
@@ -192,7 +192,7 @@ This is **CruxIt YouTube Caption API**, a robust and secure API service for fetc
 | Variable   | Description                             | Example Value      |
 |------------|-----------------------------------------|--------------------|
 | `API_KEY`  | The API key required to access the API. | `your_secure_api_key` |
-| `PORT`     | The port to run the Flask application.  | `5000`             |
+| `PORT`     | The port to run the FastAPI application. | `5000`             |
 
 ---
 
