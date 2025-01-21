@@ -2,4 +2,4 @@ fastapi
 innertube
 requests
 python-dotenv
-
+uvicorn
