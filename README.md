@@ -1,6 +1,6 @@
-# CruxIt YouTube Caption API
+# Cruxz YouTube Caption API
 
-This is **CruxIt YouTube Caption API**, a robust and secure API service for fetching YouTube video captions with enhanced functionality. This project leverages the power of the **`innertube`** library, integrating it with FastAPI to create secure and user-friendly API endpoints.
+This is **Cruxz YouTube Caption API**, a robust and secure API service for fetching YouTube video captions with enhanced functionality. This project leverages the power of the **`innertube`** library, integrating it with FastAPI to create secure and user-friendly API endpoints.
 
 ## Features
 
@@ -38,8 +38,8 @@ This is **CruxIt YouTube Caption API**, a robust and secure API service for fetc
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/cruxit-youtube-caption-api.git
-   cd cruxit-youtube-caption-api
+   git clone https://github.com/yourusername/Cruxz-youtube-caption-api.git
+   cd Cruxz-youtube-caption-api
    ```
 
 2. Install the required dependencies:
