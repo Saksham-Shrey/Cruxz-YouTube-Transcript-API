@@ -1,16 +1,32 @@
-# Cruxz YouTube Caption API
+# Cruxz Transcript API
 
-This is **Cruxz YouTube Caption API**, a robust and secure API service for fetching YouTube video captions with enhanced functionality. This project leverages the power of the **`innertube`** library, integrating it with FastAPI to create secure and user-friendly API endpoints.
+This is **Cruxz Transcript API**, a robust and secure API service for fetching YouTube video captions, transcribing media files, and summarizing content. This project combines the power of FastAPI, OpenAI, and various media processing tools to create a comprehensive transcription and summarization solution.
 
 ## Features
 
-- **Caption Retrieval**: Fetch YouTube video captions in various languages.
-- **Language Support**: Return available languages for captions if a specific one isn’t provided.
-- **Timestamp Support**: Optionally include timestamps (start and duration) for each caption segment.
-- **Video Metadata**: Fetch video title, thumbnail, channel name, and channel logo.
-- **Secure API Access**: All endpoints are protected by an API key to prevent unauthorized access.
-- **Logging**: Detailed logging for requests and errors to enhance traceability.
-- **Scalable Deployment**: Hosted securely on platforms like Railway for reliable performance.
+- **YouTube Captions**: 
+  - Fetch YouTube video captions in various languages
+  - Return available languages for captions
+  - Optionally include timestamps for each caption segment
+  - Fetch video metadata (title, thumbnail, channel name, etc.)
+
+- **File Transcription**:
+  - Transcribe PDF files (text extraction)
+  - Transcribe audio files (MP3, WAV, etc.) using OpenAI's Whisper API
+  - Transcribe video files by extracting audio and processing it
+  - Directly transcribe content from YouTube URLs
+
+- **Summarization**:
+  - Summarize any text content using OpenAI's models
+  - Summarize YouTube captions
+  - Summarize transcribed media files
+  - Control summary length and generation parameters
+
+- **Security and Performance**:
+  - API key authentication for all endpoints
+  - Optimized file handling with size limits
+  - CORS support for web applications
+  - Comprehensive error handling and logging
 
 ---
 
@@ -18,28 +34,28 @@ This is **Cruxz YouTube Caption API**, a robust and secure API service for fetch
 
 1. [Getting Started](#getting-started)
 2. [API Endpoints](#api-endpoints)
-3. [Deployment](#deployment)
-4. [Security](#security)
-5. [Environment Variables](#environment-variables)
-6. [Testing](#testing)
+3. [Environment Variables](#environment-variables)
+4. [Project Structure](#project-structure)
+5. [Testing](#testing)
+6. [Deployment](#deployment)
 7. [Credits](#credits)
-8. [Additional Notes](#additional-notes)
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- Python **3.8** or higher
-- `pip` package manager (for managing dependencies)
-- Hosting platform (e.g., Railway, Render, AWS)
+- Python 3.8 or higher
+- pip package manager
+- OpenAI API key (for summarization and audio transcription)
+- FFmpeg (for audio extraction from videos)
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/Cruxz-youtube-caption-api.git
-   cd Cruxz-youtube-caption-api
+   git clone https://github.com/yourusername/Cruxz-Transcript-API.git
+   cd Cruxz-Transcript-API
    ```
 
 2. Install the required dependencies:
@@ -47,178 +63,203 @@ This is **Cruxz YouTube Caption API**, a robust and secure API service for fetch
    pip install -r requirements.txt
    ```
 
-3. Set up your environment variables:
+3. Create a `.env` file based on `.env.example`:
    ```bash
-   export API_KEY=your_secure_api_key
-   export PORT=5000
+   cp .env.example .env
    ```
 
-4. Run the FastAPI server locally:
-   ```bash
-   python TranscriptFetch.py
+4. Edit the `.env` file with your API keys and settings:
+   ```
+   API_KEY=your_secure_api_key
+   OPENAI_API_KEY=your_openai_api_key
+   PORT=5050
+   ENVIRONMENT=development
    ```
 
-5. Access the API locally:
+5. Run the application:
+   ```bash
+   python run.py
    ```
-   http://127.0.0.1:5000/
+
+6. Access the API documentation:
+   ```
+   http://127.0.0.1:5050/docs
    ```
 
 ---
 
 ## API Endpoints
 
-### **1. Health Check**
-- **URL**: `/`
-- **Method**: `GET`
-- **Description**: Verifies that the service is running.
-- **Headers**:
-  - `x-api-key`: Your secure API key.
-- **Response**:
-  ```json
-   {
-    "endpoints": {
-        "/captions": {
-            "description": "Fetch and parse captions for a YouTube video.",
-            "notes": "If the 'language' parameter is not provided, the API returns available languages for the video.",
-            "parameters": {
-                "language": "Optional. The language code to fetch captions in a specific language.",
-                "timestamps": "Optional. Set to 'true' to include timestamps in the response.",
-                "video_id": "Required. The YouTube video ID."
-            }
-        }
-    },
-    "message": "Welcome to the YouTube Caption API Service.",
-    "status": "API is operational."
-   }
-  ```
+### YouTube Captions
 
----
-
-### **2. Fetch Captions**
+#### Get Captions
 - **URL**: `/captions`
 - **Method**: `GET`
-- **Description**: Fetch the captions for a YouTube video.
-- **Query Parameters**:
-  - `video_id` (required): The YouTube video ID.
-  - `language` (optional): Specify a language code for captions.
-  - `timestamps` (optional): Set to `true` to include start and duration timestamps.
+- **Parameters**:
+  - `video_id` (required): YouTube video ID
+  - `language` (optional): Language code for captions (e.g., 'en')
+  - `timestamps` (optional): Include timestamps in the response (true/false)
+  - `summarize` (optional): Summarize the captions (true/false)
+  - `max_length` (optional): Maximum length of the summary
+  - `temperature` (optional): Temperature for summarization
 - **Headers**:
-  - `x-api-key`: Your secure API key.
-- **Response**:
-  - **With Timestamps**:
-    ```json
-    {
-      "video_id": "dQw4w9WgXcQ",
-      "video_title": "Video Title",
-      "thumbnail": "https://example.com/thumbnail.jpg",
-      "channel_name": "Channel Name",
-      "channel_logo": "https://example.com/logo.jpg",
-      "languageCode": "en",
-      "captions": [
-        {
-          "start": 0.0,
-          "duration": 5.2,
-          "text": "Hello world."
-        },
-        {
-          "start": 5.2,
-          "duration": 4.5,
-          "text": "This is a test caption."
-        }
-      ]
-    }
-    ```
-  - **Without Timestamps**:
-    ```json
-    {
-      "video_id": "dQw4w9WgXcQ",
-      "video_title": "Video Title",
-      "thumbnail": "https://example.com/thumbnail.jpg",
-      "channel_name": "Channel Name",
-      "channel_logo": "https://example.com/logo.jpg",
-      "languageCode": "en",
-      "captions": "Hello world. This is a test caption."
-    }
-    ```
+  - `x-api-key`: Your API key
 
----
+### Summarization
 
-### **3. Available Languages**
-- **Description**: If the `language` parameter is not provided, the API returns available languages for the video.
-- **Response**:
+#### Summarize Text
+- **URL**: `/summarize`
+- **Method**: `POST`
+- **Request Body**:
   ```json
   {
-    "video_id": "dQw4w9WgXcQ",
-    "video_title": "Video Title",
-    "thumbnail": "https://example.com/thumbnail.jpg",
-    "channel_name": "Channel Name",
-    "channel_logo": "https://example.com/logo.jpg",
-    "available_languages": [
-      {
-        "languageCode": "en",
-        "name": "English"
-      },
-      {
-        "languageCode": "fr",
-        "name": "French"
-      }
-    ]
+    "text": "Text to summarize...",
+    "max_length": 500,
+    "temperature": 0.7
   }
   ```
+- **Headers**:
+  - `x-api-key`: Your API key
 
----
+### File Transcription
 
-## Deployment
+#### Upload File
+- **URL**: `/transcribe/upload`
+- **Method**: `POST`
+- **Form Data**:
+  - `file`: The file to upload (PDF, audio, or video)
+- **Headers**:
+  - `x-api-key`: Your API key
+  - `Content-Type`: `multipart/form-data`
 
-### Steps for Deploying to Railway
-1. Create a new Railway project and link your GitHub repository.
-2. Add environment variables under the **Settings** tab:
-   - `API_KEY`: Your secure API key.
-   - `PORT`: The port to run the application (default: 5000).
-3. Deploy the project. Railway will handle hosting and scaling.
+#### Transcribe File
+- **URL**: `/transcribe/file`
+- **Method**: `POST`
+- **Form Data**:
+  - `file_path`: Path to the uploaded file
+  - `summarize` (optional): Whether to summarize the transcription (true/false)
+- **Headers**:
+  - `x-api-key`: Your API key
+  - `Content-Type`: `application/x-www-form-urlencoded`
 
----
-
-## Security
-
-- **API Key Enforcement**: All routes are protected by the `x-api-key` header.
-- **HTTPS**: Ensure the deployment uses HTTPS for secure communication.
-- **Rate Limiting**: Consider implementing rate-limiting to prevent abuse.
+#### Transcribe YouTube Video
+- **URL**: `/transcribe/youtube`
+- **Method**: `POST`
+- **Form Data**:
+  - `video_url`: YouTube video URL
+  - `summarize` (optional): Whether to summarize the transcription (true/false)
+- **Headers**:
+  - `x-api-key`: Your API key
+  - `Content-Type`: `application/x-www-form-urlencoded`
 
 ---
 
 ## Environment Variables
 
-| Variable   | Description                             | Example Value      |
-|------------|-----------------------------------------|--------------------|
-| `API_KEY`  | The API key required to access the API. | `your_secure_api_key` |
-| `PORT`     | The port to run the FastAPI application. | `5000`             |
+| Variable         | Description                                  | Example Value           |
+|------------------|----------------------------------------------|-------------------------|
+| `API_KEY`        | The API key required to access the API       | `your_secure_api_key`   |
+| `OPENAI_API_KEY` | OpenAI API key for AI features               | `your_openai_api_key`   |
+| `PORT`           | The port to run the FastAPI application      | `5050`                  |
+| `ENVIRONMENT`    | Application environment                      | `development`           |
+
+---
+
+## Project Structure
+
+```
+Cruxz-Transcript-API/
+│
+├── app/                        # Main application package
+│   ├── api/                    # API routers
+│   │   ├── __init__.py         # API package initialization
+│   │   ├── root.py             # Root path router
+│   │   ├── youtube.py          # YouTube captions router
+│   │   ├── summarization.py    # Text summarization router
+│   │   └── transcription.py    # File transcription router
+│   │
+│   ├── core/                   # Core functionality
+│   │   ├── __init__.py         # Core package initialization
+│   │   ├── config.py           # Application configuration
+│   │   └── dependencies.py     # API dependencies (auth, etc.)
+│   │
+│   ├── models/                 # Data models
+│   │   ├── __init__.py         # Models package initialization
+│   │   ├── youtube.py          # YouTube data models
+│   │   ├── openai.py           # OpenAI-related models
+│   │   └── files.py            # File handling models
+│   │
+│   ├── services/               # Service classes
+│   │   ├── __init__.py         # Services package initialization
+│   │   ├── youtube_service.py  # YouTube API service
+│   │   ├── openai_service.py   # OpenAI API service
+│   │   └── file_service.py     # File handling service
+│   │
+│   ├── utils/                  # Utility functions
+│   │   └── __init__.py         # Utils package initialization
+│   │
+│   ├── __init__.py             # App package initialization
+│   └── main.py                 # FastAPI application setup
+│
+├── uploads/                    # Directory for uploaded files
+├── .env                        # Environment variables (not in repo)
+├── .env.example                # Example environment variables
+├── .gitignore                  # Git ignore file
+├── LICENSE                     # License file
+├── Procfile                    # Deployment configuration for Heroku/Railway
+├── README.md                   # Project documentation
+├── requirements.txt            # Python dependencies
+└── run.py                      # Script to run the application
+```
 
 ---
 
 ## Testing
 
 ### Using `curl`
-1. Test the health check:
+
+1. Test the API information:
    ```bash
-   curl -H "x-api-key: <your_api_key>" http://127.0.0.1:5000/
+   curl -H "x-api-key: <your_api_key>" http://127.0.0.1:5050/
    ```
 
 2. Fetch captions:
    ```bash
-   curl -H "x-api-key: <your_api_key>" "http://127.0.0.1:5000/captions?video_id=dQw4w9WgXcQ&timestamps=true"
+   curl -H "x-api-key: <your_api_key>" "http://127.0.0.1:5050/captions?video_id=dQw4w9WgXcQ&timestamps=true"
    ```
+
+3. Summarize text:
+   ```bash
+   curl -X POST -H "Content-Type: application/json" -H "x-api-key: <your_api_key>" -d '{"text":"Text to summarize..."}' http://127.0.0.1:5050/summarize
+   ```
+
+---
+
+## Deployment
+
+### Deployment on Railway or Heroku
+
+1. Create a new project on the platform
+2. Link your GitHub repository
+3. Add the required environment variables:
+   - `API_KEY`
+   - `OPENAI_API_KEY`
+   - `ENVIRONMENT=production`
+4. Deploy the application
+
+The provided Procfile will handle the deployment configuration.
 
 ---
 
 ## Credits
 
-- **`innertube` Library**:
-  - This project uses the `innertube` library for fetching video metadata and captions.
-  - GitHub: [innertube](https://github.com/tombulled/innertube)
+- **innertube Library**: Used for fetching YouTube video metadata and captions
+- **OpenAI API**: Used for text summarization and audio transcription
+- **FastAPI**: Modern web framework for building APIs
+- **PyPDF2**: Used for extracting text from PDF files
+- **pydub**: Used for audio processing
+- **pytube**: Used for downloading YouTube videos
 
 ---
 
-## Additional Notes
-
-This project is designed to securely fetch captions and metadata for YouTube videos. For any questions or support, feel free to reach out !!
+This project is designed to be easily extensible with additional features. If you have any questions or need support, feel free to reach out!

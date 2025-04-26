@@ -3,3 +3,12 @@ innertube
 requests
 python-dotenv
 uvicorn
+pydantic[email]
+openai
+python-multipart
+pytube
+PyPDF2
+pydub
+SpeechRecognition
+validators
+tenacity
