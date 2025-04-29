@@ -1,5 +1,6 @@
 fastapi
-innertube
+youtube-transcript-api
+pytube
 requests
 python-dotenv
 uvicorn

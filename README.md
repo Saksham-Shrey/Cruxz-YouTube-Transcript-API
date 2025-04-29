@@ -1,14 +1,15 @@
 # Cruxz YouTube Caption API
 
-This is **Cruxz YouTube Caption API**, a robust and secure API service built with FastAPI for fetching YouTube video captions and metadata. It leverages the **`innertube`** library for interacting with YouTube's internal API and includes API key authentication for security.
+This is **Cruxz YouTube Caption API**, a robust and secure API service built with FastAPI for fetching YouTube video captions and metadata. It leverages the **`youtube-transcript-api`** library for interacting with YouTube captions and **`pytube`** for fetching video metadata, with API key authentication for security.
 
 ## Features
 
 - **Secure API Access**: Endpoints protected by an API key (`x-api-key` header).
 - **Caption Retrieval**: Fetch YouTube video captions by video ID.
 - **Language Selection**: Specify the desired caption language or retrieve a list of available languages.
+- **Translation Support**: Automatically translates captions if available for the requested language.
 - **Timestamp Support**: Optionally include start and duration timestamps for each caption segment.
-- **Video Metadata**: Retrieve video title, thumbnail URL, channel name, and channel logo URL.
+- **Video Metadata**: Retrieve video title, thumbnail URL, channel name, and channel information.
 - **Clear Error Handling**: Provides informative JSON responses for common errors (e.g., invalid API key, captions not found).
 - **Logging**: Basic logging for monitoring requests and errors.
 - **Easy Deployment**: Designed for straightforward deployment on platforms like Railway or Render using Uvicorn.
@@ -66,14 +67,13 @@ The core logic resides in `TranscriptFetch.py`:
 -   **Logging Configuration**: Configures basic logging to output information and errors.
 -   **API Key Middleware**: A middleware function (`api_key_middleware`) intercepts all incoming requests to validate the `x-api-key` header against the `API_KEY` environment variable. Unauthorized requests receive a `403 Forbidden` response.
 -   **Home Endpoint (`/`)**: A simple `GET` endpoint that serves as a health check and provides basic API information.
+-   **Video Metadata Retrieval**: Uses `pytube` to fetch video details like title, thumbnail, and channel information.
 -   **Captions Endpoint (`/captions`)**:
     -   The main `GET` endpoint for fetching captions.
     -   Accepts `video_id` (required), `language` (optional), and `timestamps` (optional, defaults to `false`) as query parameters.
-    -   Uses the `innertube` client to fetch player data for the given `video_id`.
-    -   Extracts video metadata (title, thumbnail, channel info).
-    -   Retrieves available caption tracks.
+    -   Uses the `youtube-transcript-api` to fetch available transcripts for the given `video_id`.
     -   If `language` is not provided, it returns a list of available languages.
-    -   If `language` is provided, it finds the corresponding caption track, fetches the raw XML captions using `requests`, and parses them using `xml.etree.ElementTree`.
+    -   If `language` is provided, it finds the corresponding transcript, with fallback to translation if available.
     -   Returns captions either as a single concatenated string or as a list of objects with `start`, `duration`, and `text` (if `timestamps=true`).
     -   Includes error handling for cases like missing captions or invalid language codes.
 -   **Server Execution**: The `run_server` function starts the Uvicorn ASGI server to serve the FastAPI application, listening on the host and port specified by environment variables (`0.0.0.0` and `PORT`). The script runs this function when executed directly (`if __name__ == "__main__":`).
@@ -85,8 +85,9 @@ The core logic resides in `TranscriptFetch.py`:
 The project relies on the following Python packages (listed in `requirements.txt`):
 
 -   **`fastapi`**: A modern, fast (high-performance) web framework for building APIs with Python 3.7+ based on standard Python type hints.
--   **`innertube`**: A library to interact with YouTube's internal API (InnerTube) for fetching data like video details and captions.
--   **`requests`**: A simple, yet elegant HTTP library for making HTTP requests (used here to fetch the caption XML file).
+-   **`youtube-transcript-api`**: A library that allows you to get the transcript/subtitles of a given YouTube video, with language support.
+-   **`pytube`**: A lightweight, dependency-free Python library to download YouTube videos and retrieve metadata.
+-   **`requests`**: A simple, yet elegant HTTP library for making HTTP requests.
 -   **`python-dotenv`**: Reads key-value pairs from a `.env` file and can set them as environment variables. Useful for local development.
 -   **`uvicorn`**: An ASGI (Asynchronous Server Gateway Interface) server implementation, used to run the FastAPI application.
 
@@ -103,15 +104,15 @@ The project relies on the following Python packages (listed in `requirements.txt
 ### Installation
 
 1.  Clone the repository:
-    ```bash
+   ```bash
     git clone https://github.com/CruxzTom/Cruxz-YouTube-Transcript-API.git # Or your fork
     cd Cruxz-YouTube-Transcript-API
-    ```
+   ```
 
 2.  Install the required dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 3.  Set up environment variables. You can create a `.env` file in the project root for local development:
     ```.env
@@ -123,16 +124,16 @@ The project relies on the following Python packages (listed in `requirements.txt
 ### Running Locally
 
 1.  Run the FastAPI server using Uvicorn (which `TranscriptFetch.py` does automatically):
-    ```bash
-    python TranscriptFetch.py
-    ```
+   ```bash
+   python TranscriptFetch.py
+   ```
     The server will start, typically listening on `http://0.0.0.0:5050` (or the port specified in `PORT`).
 
 2.  You can access the API endpoints using tools like `curl` or a web browser (for the home endpoint). Ensure you include your API key in the `x-api-key` header for protected endpoints.
     ```bash
     # Example: Accessing the home endpoint
     curl -H "x-api-key: your_secret_api_key_here" http://127.0.0.1:5050/
-    ```
+   ```
 
 ---
 
@@ -147,23 +148,23 @@ All endpoints require the `x-api-key` header for authentication.
 -   **Headers**:
     -   `x-api-key`: Your API key.
 -   **Success Response (`200 OK`)**:
-    ```json
-    {
+  ```json
+   {
      "message": "Welcome to the YouTube Caption API Service.",
-     "endpoints": {
-         "/captions": {
-             "description": "Fetch and parse captions for a YouTube video.",
-             "parameters": {
+    "endpoints": {
+        "/captions": {
+            "description": "Fetch and parse captions for a YouTube video.",
+            "parameters": {
                  "video_id": "Required. The YouTube video ID.",
-                 "language": "Optional. The language code to fetch captions in a specific language.",
+                "language": "Optional. The language code to fetch captions in a specific language.",
                  "timestamps": "Optional. Set to 'true' to include timestamps in the response."
              },
              "notes": "If the 'language' parameter is not provided, the API returns available languages for the video."
-         }
+            }
      },
-     "status": "API is operational."
-    }
-    ```
+    "status": "API is operational."
+   }
+  ```
 
 ---
 
@@ -179,41 +180,41 @@ All endpoints require the `x-api-key` header for authentication.
     -   `x-api-key`: Your API key.
 -   **Success Response (`200 OK`)**:
     -   **With Timestamps (`timestamps=true`)**:
-        ```json
-        {
-          "video_id": "dQw4w9WgXcQ",
+    ```json
+    {
+      "video_id": "dQw4w9WgXcQ",
           "video_title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
           "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg", // Example URL
           "channel_name": "Rick Astley",
           "channel_logo": "https://yt3.ggpht.com/...", // Example URL
-          "languageCode": "en",
+      "languageCode": "en",
           "timestamped_captions": [
-            {
+        {
               "start": 1.0, // Example value
               "duration": 3.5, // Example value
               "text": "We're no strangers to love"
-            },
-            {
+        },
+        {
               "start": 4.5,
               "duration": 3.8,
               "text": "You know the rules and so do I"
             }
             // ... more caption segments
-          ]
-        }
-        ```
+      ]
+    }
+    ```
     -   **Without Timestamps (`timestamps=false` or omitted)**:
-        ```json
-        {
-          "video_id": "dQw4w9WgXcQ",
+    ```json
+    {
+      "video_id": "dQw4w9WgXcQ",
           "video_title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
           "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
           "channel_name": "Rick Astley",
           "channel_logo": "https://yt3.ggpht.com/...",
-          "languageCode": "en",
+      "languageCode": "en",
           "captions": "We're no strangers to love You know the rules and so do I A full commitment's what I'm thinking of..." // Concatenated string
-        }
-        ```
+    }
+    ```
 
 ---
 
@@ -222,26 +223,26 @@ All endpoints require the `x-api-key` header for authentication.
 -   **Trigger**: Call the `/captions` endpoint with a valid `video_id` but *without* the `language` parameter.
 -   **Description**: Returns metadata about the video and a list of caption languages available for it.
 -   **Success Response (`200 OK`)**:
-    ```json
-    {
-      "video_id": "dQw4w9WgXcQ",
+  ```json
+  {
+    "video_id": "dQw4w9WgXcQ",
       "video_title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
       "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
       "channel_name": "Rick Astley",
       "channel_logo": "https://yt3.ggpht.com/...",
-      "available_languages": [
-        {
-          "languageCode": "en",
+    "available_languages": [
+      {
+        "languageCode": "en",
           "name": "English" // Name might vary (e.g., "English (auto-generated)")
-        },
-        {
+      },
+      {
           "languageCode": "es",
           "name": "Spanish"
-        }
+      }
         // ... other available languages
-      ]
-    }
-    ```
+    ]
+  }
+  ```
 
 ---
 
@@ -284,7 +285,19 @@ These variables configure the application's behavior. Set them in your deploymen
 | Variable | Description                                     | Required | Default | Example Value          |
 | :------- | :---------------------------------------------- | :------- | :------ | :--------------------- |
 | `API_KEY`| The secret key required in the `x-api-key` header. | Yes      | -       | `your_secure_api_key`  |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 key for better metadata retrieval | No | - | `your_youtube_api_key` |
 | `PORT`   | The network port the Uvicorn server listens on. | No       | `5050`  | `8000`                 |
+
+### Important Note on Metadata Retrieval
+
+The API uses a multi-layered approach to retrieve video metadata (title, thumbnail, channel info):
+
+1. **YouTube Data API v3** (most reliable): Used if `YOUTUBE_API_KEY` is provided
+2. **pytube Library**: Default fallback if YouTube API key is not available
+3. **YouTube oEmbed API**: Used as a secondary fallback
+4. **Direct Thumbnail URL**: Used as a last resort when all else fails
+
+For the best experience, we recommend providing a YouTube Data API key in the `.env` file.
 
 ---
 
@@ -343,23 +356,25 @@ Replace `your_api_key` with the actual key set in your environment variables and
     ```
 
 5.  **Test Invalid API Key**:
-    ```bash
+   ```bash
     curl -H "x-api-key: invalid_key" "http://127.0.0.1:5050/captions?video_id=dQw4w9WgXcQ"
     # Expected: 403 Forbidden
-    ```
+   ```
 
 6.  **Test Missing API Key**:
-    ```bash
+   ```bash
     curl "http://127.0.0.1:5050/captions?video_id=dQw4w9WgXcQ"
     # Expected: 403 Forbidden
-    ```
+   ```
 
 ---
 
 ## Credits
 
--   **`innertube` Library**: This project heavily relies on the `innertube` library for interacting with YouTube's internal API.
-    -   GitHub: [github.com/tombulled/innertube](https://github.com/tombulled/innertube)
+-   **`youtube-transcript-api`**: This project heavily relies on the `youtube-transcript-api` library for fetching YouTube captions.
+    -   GitHub: [jdepoix/youtube-transcript-api](https://github.com/jdepoix/youtube-transcript-api)
+-   **`pytube`**: Used for fetching YouTube video metadata.
+    -   GitHub: [pytube/pytube](https://github.com/pytube/pytube)
 -   **FastAPI**: The web framework used to build the API.
     -   Website: [fastapi.tiangolo.com](https://fastapi.tiangolo.com/)
 -   **Uvicorn**: The ASGI server used to run the application.
@@ -375,6 +390,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Additional Notes
 
--   This API relies on YouTube's internal structures, which can change without notice. While `innertube` aims to adapt, breakage is possible.
+-   This API relies on YouTube's internal structures, which can change without notice. While `youtube-transcript-api` aims to adapt, breakage is possible.
 -   Be mindful of YouTube's terms of service when using this API. Avoid excessive requests that could lead to rate limiting or blocking.
 -   For questions or support, please open an issue on the GitHub repository.
