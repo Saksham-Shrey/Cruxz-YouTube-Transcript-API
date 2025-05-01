@@ -5,6 +5,7 @@ import re
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+from youtube_transcript_api.proxies import WebshareProxyConfig
 from pytube import YouTube
 import uvicorn
 from dotenv import load_dotenv
@@ -18,9 +19,28 @@ app = FastAPI()
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# API Keys
+# API Keys and Proxy Configuration
 API_KEY = os.getenv("API_KEY")  # API key for our service
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")  # YouTube Data API key (optional)
+PROXY_USERNAME = os.getenv("PROXY_USERNAME")  # Webshare proxy username
+PROXY_PASSWORD = os.getenv("PROXY_PASSWORD")  # Webshare proxy password
+
+# Initialize YouTube Transcript API with proxy if credentials are available
+def get_transcript_api():
+    """
+    Initialize and return YouTubeTranscriptApi with proxy configuration if credentials are available.
+    """
+    if PROXY_USERNAME and PROXY_PASSWORD:
+        logging.info("Initializing YouTubeTranscriptApi with Webshare proxy")
+        return YouTubeTranscriptApi(
+            proxy_config=WebshareProxyConfig(
+                proxy_username=PROXY_USERNAME,
+                proxy_password=PROXY_PASSWORD,
+            )
+        )
+    else:
+        logging.info("Initializing YouTubeTranscriptApi without proxy (credentials not found)")
+        return YouTubeTranscriptApi()
 
 # Middleware for API Key Validation
 @app.middleware("http")
@@ -275,9 +295,12 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
         channel_name = metadata["channel_name"]
         channel_logo = metadata["channel_logo"]
 
+        # Initialize Youtube Transcript API with proxy if available
+        ytt_api = get_transcript_api()
+
         # Get available transcripts
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            transcript_list = ytt_api.list_transcripts(video_id)
         except (TranscriptsDisabled, NoTranscriptFound) as e:
             return JSONResponse(status_code=404, content={
                 'error': 'No captions available for this video.',

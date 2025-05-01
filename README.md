@@ -12,6 +12,7 @@ This is **Cruxz YouTube Caption API**, a robust and secure API service built wit
 - **Video Metadata**: Retrieve video title, thumbnail URL, channel name, and channel information.
 - **Clear Error Handling**: Provides informative JSON responses for common errors (e.g., invalid API key, captions not found).
 - **Logging**: Basic logging for monitoring requests and errors.
+- **Proxy Support**: Uses Webshare Residential Proxies to bypass geographical restrictions and rate limiting.
 - **Easy Deployment**: Designed for straightforward deployment on platforms like Railway or Render using Uvicorn.
 
 ---
@@ -91,6 +92,9 @@ The project relies on the following Python packages (listed in `requirements.txt
 -   **`python-dotenv`**: Reads key-value pairs from a `.env` file and can set them as environment variables. Useful for local development.
 -   **`uvicorn`**: An ASGI (Asynchronous Server Gateway Interface) server implementation, used to run the FastAPI application.
 
+The proxy functionality uses:
+-   **`WebshareProxyConfig`**: Part of `youtube-transcript-api`, used to configure proxies for API requests.
+
 ---
 
 ## Getting Started
@@ -117,9 +121,12 @@ The project relies on the following Python packages (listed in `requirements.txt
 3.  Set up environment variables. You can create a `.env` file in the project root for local development:
     ```.env
     API_KEY=your_secret_api_key_here
-    PORT=5050 # Optional, defaults to 5050 if not set
+    YOUTUBE_API_KEY=your_youtube_api_key_here
+    PROXY_USERNAME=your_webshare_proxy_username
+    PROXY_PASSWORD=your_webshare_proxy_password
+    PORT=5050
     ```
-    *Replace `your_secret_api_key_here` with a strong, unique key.*
+    *Replace the placeholder values with your actual credentials.*
 
 ### Running Locally
 
@@ -287,6 +294,8 @@ These variables configure the application's behavior. Set them in your deploymen
 | `API_KEY`| The secret key required in the `x-api-key` header. | Yes      | -       | `your_secure_api_key`  |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 key for better metadata retrieval | No | - | `your_youtube_api_key` |
 | `PORT`   | The network port the Uvicorn server listens on. | No       | `5050`  | `8000`                 |
+| `PROXY_USERNAME` | Your Webshare proxy username for proxied requests | No | - | `your_webshare_proxy_username` |
+| `PROXY_PASSWORD` | Your Webshare proxy password for proxied requests | No | - | `your_webshare_proxy_password` |
 
 ### Important Note on Metadata Retrieval
 
@@ -393,3 +402,40 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 -   This API relies on YouTube's internal structures, which can change without notice. While `youtube-transcript-api` aims to adapt, breakage is possible.
 -   Be mindful of YouTube's terms of service when using this API. Avoid excessive requests that could lead to rate limiting or blocking.
 -   For questions or support, please open an issue on the GitHub repository.
+
+## Proxy Support
+
+The API includes support for Webshare Residential Proxies to improve reliability and bypass geographical restrictions or rate limiting when accessing YouTube content.
+
+### Setting Up Proxies
+
+1. **Purchase a Residential Proxy Package**: 
+   - Create a Webshare account and purchase a "Residential" proxy package.
+   - **Important**: Do NOT purchase "Proxy Server" or "Static Residential" as they won't work with this implementation.
+
+2. **Configure Environment Variables**:
+   - Add your Webshare credentials to your `.env` file or deployment environment:
+     ```
+     PROXY_USERNAME=your_webshare_proxy_username
+     PROXY_PASSWORD=your_webshare_proxy_password
+     ```
+
+3. **How It Works**:
+   - The application will automatically use the proxy configuration if valid credentials are provided.
+   - If no proxy credentials are provided, the API will fall back to direct connections.
+   - All YouTube Transcript API requests are routed through the proxy when enabled.
+
+4. **Benefits**:
+   - Access geo-restricted content
+   - Avoid IP-based rate limiting
+   - Improve reliability for high-volume applications
+
+### Proxy Implementation Details
+
+The API uses the `WebshareProxyConfig` class from the `youtube_transcript_api.proxies` module to initialize the YouTube Transcript API with proxy support. This implementation allows for seamless proxy integration without additional configuration on the client side.
+
+## Additional Notes
+
+- **Proxy Performance**: When using proxies, API response times may vary slightly depending on the proxy server's location and current load.
+- **Proxy Usage**: Monitor your proxy bandwidth usage through your Webshare dashboard to ensure you don't exceed your plan limits.
+- **Multiple Proxies**: This implementation uses a single proxy configuration. For advanced load balancing across multiple proxies, additional customization would be required.
