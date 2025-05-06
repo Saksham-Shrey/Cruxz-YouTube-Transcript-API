@@ -30,17 +30,17 @@ def get_transcript_api():
     """
     Initialize and return YouTubeTranscriptApi with proxy configuration if credentials are available.
     """
-    if PROXY_USERNAME and PROXY_PASSWORD:
+    # if PROXY_USERNAME and PROXY_PASSWORD:
         logging.info("Initializing YouTubeTranscriptApi with Webshare proxy")
         return YouTubeTranscriptApi(
             proxy_config=WebshareProxyConfig(
                 proxy_username=PROXY_USERNAME,
                 proxy_password=PROXY_PASSWORD,
             )
-        )
-    else:
-        logging.info("Initializing YouTubeTranscriptApi without proxy (credentials not found)")
-        return YouTubeTranscriptApi()
+    #     )
+    # else:
+    #     logging.info("Initializing YouTubeTranscriptApi without proxy (credentials not found)")
+    #     return YouTubeTranscriptApi()
 
 # Middleware for API Key Validation
 @app.middleware("http")
