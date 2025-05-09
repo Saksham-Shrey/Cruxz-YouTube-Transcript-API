@@ -10,6 +10,8 @@ from pytube import YouTube
 import uvicorn
 from dotenv import load_dotenv
 import requests
+from requests import Session
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -42,6 +44,14 @@ def get_transcript_api():
                 proxy_password=PROXY_PASSWORD,
             )
         )
+
+        # http_client = Session()
+        # http_client.proxies.update({
+        #     "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
+        #     "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}"
+        # })
+        # return YouTubeTranscriptApi(http_client=http_client)
+
     else:
         logging.info("Initializing YouTubeTranscriptApi without proxy (credentials not found)")
         return YouTubeTranscriptApi()
@@ -291,6 +301,11 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
     """
     timestamps = timestamps.lower() == 'true'  # Defaults to false
 
+    proxies = {
+         "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
+        "https": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}"
+    }
+
     try:
         # Get video metadata
         metadata = get_video_metadata(video_id)
@@ -304,7 +319,7 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
 
         # Get available transcripts
         try:
-            transcript_list = ytt_api.list_transcripts(video_id)
+            transcript_list = ytt_api.list_transcripts(video_id, proxies=proxies)
         except (TranscriptsDisabled, NoTranscriptFound) as e:
             return JSONResponse(status_code=404, content={
                 'error': 'No captions available for this video.',
