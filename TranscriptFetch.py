@@ -24,23 +24,27 @@ API_KEY = os.getenv("API_KEY")  # API key for our service
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")  # YouTube Data API key (optional)
 PROXY_USERNAME = os.getenv("PROXY_USERNAME")  # Webshare proxy username
 PROXY_PASSWORD = os.getenv("PROXY_PASSWORD")  # Webshare proxy password
+PROXY_HOST = os.getenv("PROXY_HOST", "p.webshare.io")  # Default Webshare proxy host
+PROXY_PORT = os.getenv("PROXY_PORT", "80")  # Default Webshare proxy port
 
 # Initialize YouTube Transcript API with proxy if credentials are available
 def get_transcript_api():
     """
     Initialize and return YouTubeTranscriptApi with proxy configuration if credentials are available.
     """
-    # if PROXY_USERNAME and PROXY_PASSWORD:
-    logging.info("Initializing YouTubeTranscriptApi with Webshare proxy")
-    return YouTubeTranscriptApi(
-        proxy_config=WebshareProxyConfig(
-        proxy_username=PROXY_USERNAME,
-        proxy_password=PROXY_PASSWORD,
-    ))
-    #     )
-    # else:
-    #     logging.info("Initializing YouTubeTranscriptApi without proxy (credentials not found)")
-    #     return YouTubeTranscriptApi()
+    if PROXY_USERNAME and PROXY_PASSWORD:
+        logging.info("Initializing YouTubeTranscriptApi with Webshare proxy")
+        proxy_address = f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@p.webshare.io"
+        logging.info(f"Using proxy address: {proxy_address}")
+        return YouTubeTranscriptApi(
+            proxy_config=WebshareProxyConfig(
+                proxy_username=PROXY_USERNAME,
+                proxy_password=PROXY_PASSWORD,
+            )
+        )
+    else:
+        logging.info("Initializing YouTubeTranscriptApi without proxy (credentials not found)")
+        return YouTubeTranscriptApi()
 
 # Middleware for API Key Validation
 @app.middleware("http")
@@ -414,6 +418,25 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
     except Exception as e:
         logging.error(f"Error while fetching captions for video_id {video_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# New function to check proxy IP address
+@app.get("/proxyCheck")
+async def proxy_check():
+    """
+    Endpoint to check the IP address being used via the proxy.
+    """
+    proxies = {
+        "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
+        "https": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}"
+    }
+    try:
+        response = requests.get("https://api.ipify.org?format=json", proxies=proxies)
+        ip_info = response.json()
+        logging.info(f"Proxy IP address: {ip_info}")
+        return ip_info
+    except Exception as e:
+        logging.error(f"Error checking proxy IP: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check proxy IP")
 
 # Run the server
 def run_server():
