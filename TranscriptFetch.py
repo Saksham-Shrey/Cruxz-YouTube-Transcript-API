@@ -29,32 +29,6 @@ PROXY_PASSWORD = os.getenv("PROXY_PASSWORD")  # Webshare proxy password
 PROXY_HOST = os.getenv("PROXY_HOST", "p.webshare.io")  # Default Webshare proxy host
 PROXY_PORT = os.getenv("PROXY_PORT", "80")  # Default Webshare proxy port
 
-# Initialize YouTube Transcript API with proxy if credentials are available
-def get_transcript_api():
-    """
-    Initialize and return YouTubeTranscriptApi with proxy configuration if credentials are available.
-    """
-    if PROXY_USERNAME and PROXY_PASSWORD:
-        logging.info("Initializing YouTubeTranscriptApi with Webshare proxy")
-        proxy_address = f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@p.webshare.io"
-        logging.info(f"Using proxy address: {proxy_address}")
-        return YouTubeTranscriptApi(
-            proxy_config=WebshareProxyConfig(
-                proxy_username=PROXY_USERNAME,
-                proxy_password=PROXY_PASSWORD,
-            )
-        )
-
-        # http_client = Session()
-        # http_client.proxies.update({
-        #     "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
-        #     "https": f"https://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}"
-        # })
-        # return YouTubeTranscriptApi(http_client=http_client)
-
-    else:
-        logging.info("Initializing YouTubeTranscriptApi without proxy (credentials not found)")
-        return YouTubeTranscriptApi()
 
 # Middleware for API Key Validation
 @app.middleware("http")
@@ -315,7 +289,7 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
         channel_logo = metadata["channel_logo"]
 
         # Initialize Youtube Transcript API with proxy if available
-        ytt_api = get_transcript_api()
+        ytt_api = YouTubeTranscriptApi()
 
         # Get available transcripts
         try:
