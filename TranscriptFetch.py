@@ -276,7 +276,7 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
     timestamps = timestamps.lower() == 'true'  # Defaults to false
 
     proxies = {
-         "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
+        "http": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
         "https": f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}"
     }
 
