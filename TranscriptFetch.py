@@ -318,7 +318,7 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
             for transcript in transcript_list._generated_transcripts.values():
                 available_languages.append({
                     "languageCode": transcript.language_code,
-                    "name": f"{transcript.language} (auto-generated)"
+                    "name": f"{transcript.language}"
                 })
             
             return {
@@ -340,8 +340,7 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
             
             # Safely check if _is_generated attribute exists
             is_generated = hasattr(transcript, '_is_generated') and transcript._is_generated
-            if is_generated:
-                language_name += " (auto-generated)"
+ 
                 
         except NoTranscriptFound:
             # Try to get a transcript translated to the requested language
