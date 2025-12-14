@@ -301,11 +301,19 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
         channel_logo = metadata["channel_logo"]
 
         # Initialize Youtube Transcript API with proxy if available
-        ytt_api = YouTubeTranscriptApi()
+        if PROXY_USERNAME and PROXY_PASSWORD:
+            ytt_api = YouTubeTranscriptApi(
+                proxy_config=WebshareProxyConfig(
+                    proxy_username=PROXY_USERNAME,
+                    proxy_password=PROXY_PASSWORD,
+                )
+            )
+        else:
+            ytt_api = YouTubeTranscriptApi()
 
         # Get available transcripts
         try:
-            transcript_list = ytt_api.list_transcripts(video_id, proxies=proxies)
+            transcript_list = ytt_api.list(video_id)
         except (TranscriptsDisabled, NoTranscriptFound) as e:
             return JSONResponse(status_code=404, content={
                 'error': 'No captions available for this video.',
