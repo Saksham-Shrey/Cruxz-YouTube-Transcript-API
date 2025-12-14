@@ -10,7 +10,6 @@ from pytube import YouTube
 import uvicorn
 from dotenv import load_dotenv
 import requests
-from requests import Session
 
 
 # Load environment variables from .env file
