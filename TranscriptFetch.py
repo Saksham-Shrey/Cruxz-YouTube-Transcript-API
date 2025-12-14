@@ -5,7 +5,8 @@ import re
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
-from youtube_transcript_api.proxies import WebshareProxyConfig
+from youtube_transcript_api.proxies import WebshareProxyConfig, GenericProxyConfig
+
 from pytube import YouTube
 import uvicorn
 from dotenv import load_dotenv
@@ -303,9 +304,9 @@ async def get_captions(video_id: str, language: str = None, timestamps: str = "f
         # Initialize Youtube Transcript API with proxy if available
         if PROXY_USERNAME and PROXY_PASSWORD:
             ytt_api = YouTubeTranscriptApi(
-                proxy_config=WebshareProxyConfig(
-                    proxy_username=PROXY_USERNAME,
-                    proxy_password=PROXY_PASSWORD,
+                proxy_config=GenericProxyConfig(
+                    http_url=f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
+                    https_url=f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{PROXY_HOST}:{PROXY_PORT}",
                 )
             )
         else:
